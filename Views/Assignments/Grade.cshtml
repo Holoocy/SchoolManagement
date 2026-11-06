@@ -1,0 +1,72 @@
+@model List<SchoolManagement.Controllers.GradeSubmissionRow>
+@{
+    var assignment = (SchoolManagement.Models.Assignment)ViewBag.Assignment;
+    ViewData["Title"] = "Grade Assignment";
+}
+
+<div class="mb-3">
+    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<h2>Grade: @assignment.Title</h2>
+<p class="text-muted">@assignment.Subject?.Name &middot; Due @assignment.DueDate.ToShortDateString()</p>
+
+@if (!Model.Any())
+{
+    <p class="empty-state">No students have been assigned this yet. <a asp-action="AssignStudents" asp-route-id="@assignment.Id">Assign students</a> first.</p>
+}
+else
+{
+    <form asp-action="Grade" asp-route-id="@assignment.Id" method="post">
+        <table class="table table-striped table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Student</th>
+                    <th>Status</th>
+                    <th>Grade (0-100)</th>
+                    <th>Feedback</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (var i = 0; i < Model.Count; i++)
+                {
+                    <tr>
+                        <td>
+                            @Model[i].StudentName
+                            <input type="hidden" name="submissions[@i].SubmissionId" value="@Model[i].SubmissionId" />
+                        </td>
+                        <td>
+                            <select name="submissions[@i].Status" id="status-@i" class="form-select form-select-sm">
+                                <option value="Assigned" selected="@(Model[i].Status == "Assigned" ? "selected" : null)">Assigned</option>
+                                <option value="Submitted" selected="@(Model[i].Status == "Submitted" ? "selected" : null)">Submitted</option>
+                                <option value="Graded" selected="@(Model[i].Status == "Graded" ? "selected" : null)">Graded</option>
+                            </select>
+                        </td>
+                        <td>
+                            <input type="number" step="0.01" min="0" max="100" name="submissions[@i].Grade" value="@Model[i].Grade" class="form-control form-control-sm grade-input" style="max-width:110px;" data-status-target="status-@i" />
+                        </td>
+                        <td>
+                            <input type="text" name="submissions[@i].Feedback" value="@Model[i].Feedback" class="form-control form-control-sm" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <button type="submit" class="btn btn-primary">Save Grades</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </form>
+
+    @section Scripts {
+        <script>
+            document.querySelectorAll('.grade-input').forEach(function (input) {
+                input.addEventListener('input', function () {
+                    if (input.value !== '') {
+                        var status = document.getElementById(input.dataset.statusTarget);
+                        if (status) status.value = 'Graded';
+                    }
+                });
+            });
+        </script>
+    }
+}

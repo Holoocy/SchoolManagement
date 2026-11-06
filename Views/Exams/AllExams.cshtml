@@ -1,0 +1,59 @@
+@model IEnumerable<SchoolManagement.Models.Exam>
+
+@{
+    ViewData["Title"] = "All Exams";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <button type="button" class="btn btn-outline-secondary btn-sm mb-2" onclick="history.back()">Back</button>
+        <h2 class="mb-0">All Exams</h2>
+    </div>
+</div>
+
+<nav class="nav nav-tabs" aria-label="Exams">
+    <a class="nav-link" asp-action="PendingApproval">Exams Approval</a>
+    <a class="nav-link active" aria-current="page" asp-action="AllExams">All Exams</a>
+</nav>
+
+@if (!Model.Any())
+{
+    <p class="text-muted">No exams have been created yet.</p>
+}
+else
+{
+    <table class="table table-striped table-bordered align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>Title</th>
+                <th>Teacher</th>
+                <th>Subject</th>
+                <th>Grade</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var exam in Model)
+            {
+                <tr>
+                    <td>@exam.Title</td>
+                    <td>@exam.Teacher?.FullName</td>
+                    <td>@exam.Subject?.Name</td>
+                    <td>@exam.Class?.Name</td>
+                    <td><span class="status-badge status-@exam.Status.ToLower()">@exam.Status</span></td>
+                    <td>
+                        @if (exam.Status == "PendingApproval")
+                        {
+                            <a class="btn btn-sm btn-outline-primary" asp-action="ReviewDetails" asp-route-id="@exam.Id">Review</a>
+                        }
+                        else
+                        {
+                            <a class="btn btn-sm btn-outline-info" asp-action="Results" asp-route-id="@exam.Id">Results</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

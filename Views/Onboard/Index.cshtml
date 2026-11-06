@@ -1,0 +1,79 @@
+@model SchoolManagement.Models.OnboardViewModel
+
+@{
+    ViewData["Title"] = "Onboard Your School";
+}
+
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-1">Onboard Your School</h3>
+                    <p class="text-muted text-center mb-4">Create a dedicated space for your school and become its first Admin.</p>
+
+                    <form method="post" asp-action="Index" asp-controller="Onboard" enctype="multipart/form-data">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="SchoolName" class="form-label"></label>
+                            <input asp-for="SchoolName" class="form-control" placeholder="e.g. Heavens Gate Academy" />
+                            <span asp-validation-for="SchoolName" class="text-danger"></span>
+                            <div class="form-text">This becomes your school's URL, e.g. yourapp.com/heavens-gate-academy</div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label asp-for="LogoFile" class="form-label">School Logo (optional)</label>
+                                <input asp-for="LogoFile" type="file" accept="image/*" class="form-control" />
+                                <div class="form-text">Shown in your sidebar. PNG or JPG recommended.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="ThemeColor" class="form-label">Theme Color</label>
+                                <input asp-for="ThemeColor" type="color" class="form-control form-control-color" title="Choose your school's theme color" />
+                            </div>
+                        </div>
+
+                        <hr class="my-4" />
+                        <p class="text-muted small mb-3">Your Admin account</p>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="FullName" class="form-label"></label>
+                                <input asp-for="FullName" class="form-control" />
+                                <span asp-validation-for="FullName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Username" class="form-label"></label>
+                                <input asp-for="Username" class="form-control" />
+                                <span asp-validation-for="Username" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Email" class="form-label"></label>
+                                <input asp-for="Email" class="form-control" />
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6"></div>
+                            <div class="col-md-6">
+                                <label asp-for="Password" class="form-label"></label>
+                                <input asp-for="Password" class="form-control" />
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="ConfirmPassword" class="form-label"></label>
+                                <input asp-for="ConfirmPassword" class="form-control" />
+                                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 mt-4">Create My School</button>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <small class="text-muted">Already have a school? <a asp-controller="Home" asp-action="Index">Back to home</a></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

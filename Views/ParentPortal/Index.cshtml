@@ -1,0 +1,47 @@
+@model IEnumerable<SchoolManagement.Models.Student>
+
+@{
+    ViewData["Title"] = "My Children";
+}
+
+<div class="page-header">
+    <h1 class="page-title">My Children</h1>
+    <p class="page-subtitle">Select a child to view their subjects, assignments and attendance</p>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="panel">
+        <div class="panel-body">
+            <p class="empty-state">No children linked to your account yet. Contact the school office if this seems wrong.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="panel-grid">
+        @foreach (var child in Model)
+        {
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">@child.FullName</h2>
+                </div>
+                <div class="panel-body">
+                    <ul class="entity-list">
+                        <li class="entity-list-item entity-list-item-static">
+                            <div class="entity-title">Class</div>
+                            <div class="entity-meta">@(child.Class?.Name ?? "Unassigned")</div>
+                        </li>
+                        <li class="entity-list-item entity-list-item-static">
+                            <div class="entity-title">Admission Number</div>
+                            <div class="entity-meta">@child.AdmissionNumber</div>
+                        </li>
+                    </ul>
+                    <div class="p-3">
+                        <a class="btn btn-primary btn-sm" asp-action="Child" asp-route-studentId="@child.Id">View Details</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

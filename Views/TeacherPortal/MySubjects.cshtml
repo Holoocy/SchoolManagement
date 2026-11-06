@@ -1,0 +1,68 @@
+@model IEnumerable<SchoolManagement.Models.Subject>
+
+@{
+    ViewData["Title"] = "My Subjects";
+    var classes = (List<string>)ViewBag.Classes;
+}
+
+<div class="page-header">
+    <h1 class="page-title">My Subjects</h1>
+    <p class="page-subtitle">Subjects and classes assigned to you</p>
+</div>
+
+@if (TempData["TeacherPortalSuccess"] != null)
+{
+    <div class="alert alert-success">@TempData["TeacherPortalSuccess"]</div>
+}
+
+<div class="panel-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Subjects</h2>
+        </div>
+        <div class="panel-body">
+            @if (!Model.Any())
+            {
+                <p class="empty-state">No subjects assigned to you yet. Ask an admin to assign you.</p>
+            }
+            else
+            {
+                <ul class="entity-list">
+                    @foreach (var subject in Model)
+                    {
+                        <li class="entity-list-item">
+                            <a asp-action="AssignStudents" asp-route-subjectId="@subject.Id">
+                                <div>
+                                    <div class="entity-title">@subject.Name</div>
+                                    <div class="entity-meta">Classes: @string.Join(", ", subject.SubjectClasses.Select(sc => sc.Class!.Name))</div>
+                                </div>
+                                <span class="panel-link">Assign Students</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Classes</h2>
+        </div>
+        <div class="panel-body">
+            @if (!classes.Any())
+            {
+                <p class="empty-state">No classes assigned to you yet.</p>
+            }
+            else
+            {
+                <ul class="entity-list">
+                    @foreach (var name in classes)
+                    {
+                        <li class="entity-list-item entity-list-item-static"><div class="entity-title">@name</div></li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>

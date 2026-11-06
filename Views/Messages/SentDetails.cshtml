@@ -1,0 +1,36 @@
+@model SchoolManagement.Models.Message
+
+@{
+    ViewData["Title"] = "Sent Message";
+}
+
+<button type="button" class="btn btn-outline-secondary btn-sm mb-2" onclick="history.back()">Back</button>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h4 class="card-title mb-1">@Model.Subject</h4>
+        <p class="text-muted mb-3">
+            @Model.RecipientSummary
+            &middot; @Model.SentAt.ToLocalTime().ToString("f")
+        </p>
+        <p style="white-space: pre-wrap;">@Model.Body</p>
+    </div>
+</div>
+
+<h6>Recipients (@Model.Recipients.Count)</h6>
+<ul class="list-group">
+    @foreach (var r in Model.Recipients)
+    {
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            @r.RecipientUser?.FullName
+            @if (r.IsRead)
+            {
+                <span class="badge bg-success">Read</span>
+            }
+            else
+            {
+                <span class="badge bg-secondary">Unread</span>
+            }
+        </li>
+    }
+</ul>

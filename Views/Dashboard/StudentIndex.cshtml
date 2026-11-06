@@ -1,0 +1,91 @@
+@model SchoolManagement.Models.StudentDashboardViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="page-header">
+    <h1 class="page-title">Welcome, @Model.StudentName</h1>
+    <p class="page-subtitle">@(Model.ClassName != null ? $"Class: {Model.ClassName}" : "Your subjects, assignments and attendance")</p>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <div class="stat-value">@Model.Subjects.Count</div>
+        <div class="stat-label">My Subjects</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-amber">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        </div>
+        <div class="stat-value">@Model.TotalAssignments</div>
+        <div class="stat-label">Assignments <span class="stat-sub">@Model.PendingAssignments pending</span></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-violet">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <div class="stat-value">@Model.AttendanceRate%</div>
+        <div class="stat-label">Attendance <span class="stat-sub">@Model.PresentCount of @Model.TotalAttendanceRecords</span></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-amber">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.2H22l-6 4.4 2.3 7.1L12 16.3 5.7 20.7 8 13.6l-6-4.4h7.6z"/></svg>
+        </div>
+        <div class="stat-value">@(Model.AverageGrade != null ? $"{Model.AverageGrade}%" : "—")</div>
+        <div class="stat-label">Average Grade</div>
+    </div>
+</div>
+
+<div class="panel-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">My Subjects</h2>
+        </div>
+        <div class="panel-body">
+            @if (!Model.Subjects.Any())
+            {
+                <p class="empty-state">No subjects assigned to your class yet.</p>
+            }
+            else
+            {
+                <ul class="entity-list">
+                    @foreach (var subject in Model.Subjects)
+                    {
+                        <li class="entity-list-item entity-list-item-static"><div class="entity-title">@subject</div></li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Recent Assignments</h2>
+        </div>
+        <div class="panel-body">
+            @if (!Model.RecentSubmissions.Any())
+            {
+                <p class="empty-state">No assignments yet.</p>
+            }
+            else
+            {
+                <ul class="entity-list">
+                    @foreach (var submission in Model.RecentSubmissions)
+                    {
+                        <li class="entity-list-item entity-list-item-static">
+                            <div>
+                                <div class="entity-title">@submission.Assignment?.Title</div>
+                                <div class="entity-meta">@submission.Assignment?.Subject?.Name &middot; Due @submission.Assignment?.DueDate.ToShortDateString()@(submission.Grade != null ? $" · Grade: {submission.Grade}%" : "")</div>
+                            </div>
+                            <span class="status-badge status-@submission.Status.ToLower().Replace(" ", "-")">@submission.Status</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>

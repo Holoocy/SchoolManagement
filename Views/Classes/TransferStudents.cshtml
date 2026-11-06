@@ -1,0 +1,87 @@
+@model IEnumerable<SchoolManagement.Models.Student>
+
+@{
+    ViewData["Title"] = "Transfer Grades";
+    int? sourceClassId = ViewBag.SourceClassId;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <button type="button" class="btn btn-outline-secondary btn-sm mb-2" onclick="history.back()">Back</button>
+        <h2 class="mb-0">Transfer Grades</h2>
+    </div>
+</div>
+
+@if (TempData["ClassSuccess"] != null)
+{
+    <div class="alert alert-success">@TempData["ClassSuccess"]</div>
+}
+@if (TempData["ClassError"] != null)
+{
+    <div class="alert alert-danger">@TempData["ClassError"]</div>
+}
+
+<form method="get" asp-action="TransferStudents" class="row g-2 align-items-end mb-4">
+    <div class="col-auto">
+        <label class="form-label">From Grade</label>
+        <select name="classId" class="form-select" onchange="this.form.submit()" asp-items="ViewBag.Classes">
+            <option value="">-- Select a grade --</option>
+        </select>
+    </div>
+</form>
+
+@if (sourceClassId == null)
+{
+    <p class="text-muted">Choose a grade above to see its students.</p>
+}
+else if (!Model.Any())
+{
+    <p class="text-muted">No students in this grade.</p>
+}
+else
+{
+    <form method="post" asp-action="TransferStudents">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="sourceClassId" value="@sourceClassId" />
+
+        <div class="row g-2 align-items-end mb-3">
+            <div class="col-auto">
+                <label class="form-label">To Grade</label>
+                <select name="destinationClassId" class="form-select" asp-items="ViewBag.DestinationClasses">
+                    <option value="">-- Select destination grade --</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary">Transfer Selected</button>
+            </div>
+        </div>
+
+        <table class="table table-striped table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th><input type="checkbox" id="selectAll" checked /></th>
+                    <th>Student</th>
+                    <th>Admission Number</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var student in Model)
+                {
+                    <tr>
+                        <td><input type="checkbox" name="selectedIds" value="@student.Id" class="student-checkbox" checked /></td>
+                        <td>@student.FullName</td>
+                        <td>@student.AdmissionNumber</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </form>
+
+    <script>
+        document.getElementById('selectAll').addEventListener('change', function () {
+            document.querySelectorAll('.student-checkbox').forEach(function (cb) {
+                cb.checked = document.getElementById('selectAll').checked;
+            });
+        });
+    </script>
+}

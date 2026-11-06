@@ -1,0 +1,34 @@
+@model SchoolManagement.Models.Student
+
+@{
+    ViewData["Title"] = "Delete Student";
+}
+
+<div class="mb-3">
+    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<h2>Delete Student</h2>
+
+<div class="alert alert-warning">
+    <strong>Are you sure you want to delete this student?</strong>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Full Name</dt>
+            <dd class="col-sm-9">@Model.FullName</dd>
+            <dt class="col-sm-3">Admission Number</dt>
+            <dd class="col-sm-9">@Model.AdmissionNumber</dd>
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9">@Model.Email</dd>
+        </dl>
+    </div>
+</div>
+
+<form asp-action="Delete">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>

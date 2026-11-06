@@ -1,0 +1,62 @@
+@model IEnumerable<SchoolManagement.Models.MessageRecipient>
+
+@{
+    ViewData["Title"] = "Inbox";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <button type="button" class="btn btn-outline-secondary btn-sm mb-2" onclick="history.back()">Back</button>
+        <h2 class="mb-0">Inbox</h2>
+    </div>
+    @if (!User.IsInRole("Student"))
+    {
+        <a class="btn btn-primary" asp-action="Compose">Compose</a>
+    }
+</div>
+
+@if (!User.IsInRole("Student"))
+{
+    <nav class="nav nav-tabs" aria-label="Mailbox">
+        <a class="nav-link active" aria-current="page" asp-action="Index">Inbox</a>
+        <a class="nav-link" asp-action="Sent">Sent</a>
+    </nav>
+}
+
+@if (TempData["MessageSuccess"] != null)
+{
+    <div class="alert alert-success">@TempData["MessageSuccess"]</div>
+}
+
+@if (!Model.Any())
+{
+    <p class="text-muted">No messages yet.</p>
+}
+else
+{
+    <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th></th>
+                <th>From</th>
+                <th>Subject</th>
+                <th>Scope</th>
+                <th>Sent</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr class="@(item.IsRead ? "" : "fw-bold")">
+                    <td>@(item.IsRead ? "" : "●")</td>
+                    <td>@item.Message!.SenderName <span class="text-muted small">(@item.Message.SenderRole)</span></td>
+                    <td>@item.Message.Subject</td>
+                    <td>@item.Message.RecipientSummary</td>
+                    <td>@item.Message.SentAt.ToLocalTime().ToString("g")</td>
+                    <td><a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@item.Id">Open</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

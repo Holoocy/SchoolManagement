@@ -1,0 +1,65 @@
+@model IEnumerable<SchoolManagement.Models.Student>
+@{
+    var assignment = (SchoolManagement.Models.Assignment)ViewBag.Assignment;
+    var assignedIds = (List<int>)ViewBag.AssignedIds;
+    ViewData["Title"] = "Assign Students";
+}
+
+<div class="mb-3">
+    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<h2>Assign Students</h2>
+<p class="text-muted">Select who receives <strong>@assignment.Title</strong> (@assignment.Subject?.Name). Only students in an assigned class or individually enrolled in this subject are eligible.</p>
+
+<form method="get" asp-action="AssignStudents" asp-route-id="@assignment.Id" class="mb-3">
+    <div class="input-group" style="max-width: 320px;">
+        <label class="input-group-text" for="classId">Grade Level</label>
+        <select name="classId" id="classId" class="form-select" asp-items="ViewBag.Classes" onchange="this.form.submit()">
+            <option value="">All Grade Levels</option>
+        </select>
+    </div>
+</form>
+
+@if (!Model.Any())
+{
+    <p class="empty-state">No eligible students yet. Assign a class or enroll students in this subject first.</p>
+}
+else
+{
+    <form asp-action="AssignStudents" asp-route-id="@assignment.Id" method="post">
+        <input type="hidden" name="classId" value="@ViewBag.SelectedClassId" />
+        <table class="table table-striped table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th><input type="checkbox" class="form-check-input" id="selectAll" /></th>
+                    <th>Name</th>
+                    <th>Admission No.</th>
+                    <th>Grade Level</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var student in Model)
+                {
+                    <tr>
+                        <td><input type="checkbox" class="form-check-input row-check" name="selectedIds" value="@student.Id" id="student-@student.Id" checked="@(assignedIds.Contains(student.Id) ? "checked" : null)" /></td>
+                        <td><label for="student-@student.Id">@student.FullName</label></td>
+                        <td>@student.AdmissionNumber</td>
+                        <td>@(student.Class?.Name ?? "Unassigned")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </form>
+
+    @section Scripts {
+        <script>
+            document.getElementById('selectAll').addEventListener('change', function () {
+                document.querySelectorAll('.row-check').forEach(function (cb) { cb.checked = document.getElementById('selectAll').checked; });
+            });
+        </script>
+    }
+}

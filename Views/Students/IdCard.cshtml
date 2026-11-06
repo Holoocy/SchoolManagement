@@ -1,0 +1,35 @@
+@model SchoolManagement.Models.Student
+
+@{
+    ViewData["Title"] = "Student ID Card";
+}
+
+<div class="mb-3 no-print">
+    <button type="button" class="btn btn-outline-secondary" onclick="history.back()">Back</button>
+    <button type="button" class="btn btn-primary" onclick="window.print()">Print</button>
+</div>
+
+<div class="id-card">
+    <div class="id-card-header">
+        <span class="id-card-school">SchoolManagement</span>
+        <span class="id-card-label">Student ID</span>
+    </div>
+    <div class="id-card-body">
+        @if (!string.IsNullOrEmpty(Model.PhotoPath))
+        {
+            <img src="@Model.PhotoPath" alt="" class="id-card-photo" />
+        }
+        else
+        {
+            <div class="id-card-photo id-card-photo-placeholder">@Model.FirstName.Substring(0, 1)@Model.LastName.Substring(0, 1)</div>
+        }
+        <div class="id-card-details">
+            <div class="id-card-name">@Model.FullName</div>
+            <div class="id-card-row"><span>Admission No.</span><strong>@Model.AdmissionNumber</strong></div>
+            <div class="id-card-row"><span>Class</span><strong>@(Model.Class?.Name ?? "—")</strong></div>
+            <div class="id-card-row"><span>Gender</span><strong>@Model.Gender</strong></div>
+            <div class="id-card-row"><span>D.O.B.</span><strong>@Model.DateOfBirth.ToShortDateString()</strong></div>
+        </div>
+    </div>
+    <div class="id-card-footer">Valid while enrolled &middot; @Model.EnrollmentDate.Year</div>
+</div>

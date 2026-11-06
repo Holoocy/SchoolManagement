@@ -1,0 +1,55 @@
+@inject SchoolManagement.Services.ITenantProvider TenantProvider
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-1">@(TenantProvider.SchoolName ?? "School Management")</h3>
+                    <p class="text-muted text-center mb-4">Sign in to your account</p>
+
+                    <form method="post" asp-action="Login" asp-controller="Auth">
+                        @if (ViewData.ModelState.IsValid == false)
+                        {
+                            <div class="alert alert-danger">
+                                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                            </div>
+                        }
+
+                        <div class="mb-3">
+                            <label for="portal" class="form-label">I am logging in as</label>
+                            <select name="portal" id="portal" class="form-select">
+                                <option value="Admin">Admin</option>
+                                <option value="Teacher">Teacher</option>
+                                <option value="Student">Student</option>
+                                <option value="Parent">Parent</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <label for="password" class="form-label">Password</label>
+                                <a asp-controller="Auth" asp-action="ForgotPassword" class="small">Forgot password?</a>
+                            </div>
+                            <input type="password" class="form-control" id="password" name="password" required />
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Login</button>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <small class="text-muted">Teacher, Student or Parent? <a asp-controller="Auth" asp-action="Signup">Create an account</a></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

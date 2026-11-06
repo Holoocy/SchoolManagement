@@ -1,0 +1,122 @@
+@model SchoolManagement.Models.ReportsViewModel
+
+@{
+    ViewData["Title"] = "Reports";
+}
+
+<div class="page-header">
+    <h1 class="page-title">Reports</h1>
+    <p class="page-subtitle">Attendance, assignment and checklist performance at a glance</p>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        </div>
+        <div class="stat-value">@Model.TotalStudents</div>
+        <div class="stat-label">Students</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-teal">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2"/></svg>
+        </div>
+        <div class="stat-value">@Model.TotalTeachers</div>
+        <div class="stat-label">Teachers</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-slate">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <div class="stat-value">@Model.TotalSubjects</div>
+        <div class="stat-label">Subjects</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-violet">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <div class="stat-value">@Model.OverallAttendanceRate%</div>
+        <div class="stat-label">Attendance <span class="stat-sub">last 7 days</span></div>
+    </div>
+</div>
+
+<div class="panel-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Attendance — Last 7 Days</h2>
+        </div>
+        <div class="panel-body">
+            @if (Model.AttendanceLastSevenDays.All(d => d.Total == 0))
+            {
+                <p class="empty-state">No attendance records in the last 7 days.</p>
+            }
+            else
+            {
+                <ul class="entity-list">
+                    @foreach (var day in Model.AttendanceLastSevenDays)
+                    {
+                        <li class="entity-list-item entity-list-item-static">
+                            <div>
+                                <div class="entity-title">@day.Date.ToString("dddd, MMM d")</div>
+                                <div class="entity-meta">@day.Present of @day.Total present</div>
+                            </div>
+                            <span class="status-badge @(day.Rate >= 75 ? "status-present" : day.Total == 0 ? "status-pending" : "status-absent")">@day.Rate%</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Assignment Status Breakdown</h2>
+            <a asp-controller="Assignments" asp-action="Index" class="panel-link">View all</a>
+        </div>
+        <div class="panel-body">
+            @if (!Model.AssignmentStatusBreakdown.Any())
+            {
+                <p class="empty-state">No assignments yet.</p>
+            }
+            else
+            {
+                <ul class="entity-list">
+                    @foreach (var status in Model.AssignmentStatusBreakdown)
+                    {
+                        <li class="entity-list-item entity-list-item-static">
+                            <div class="entity-title">@status.Status</div>
+                            <span class="status-badge status-@status.Status.ToLower().Replace(" ", "-")">@status.Count</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="panel-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Weekly Checklist Status Breakdown</h2>
+            <a asp-controller="WeeklyChecklist" asp-action="Index" class="panel-link">View all</a>
+        </div>
+        <div class="panel-body">
+            @if (!Model.WeeklyChecklistStatusBreakdown.Any())
+            {
+                <p class="empty-state">No checklist items yet.</p>
+            }
+            else
+            {
+                <ul class="entity-list">
+                    @foreach (var status in Model.WeeklyChecklistStatusBreakdown)
+                    {
+                        <li class="entity-list-item entity-list-item-static">
+                            <div class="entity-title">@status.Status</div>
+                            <span class="status-badge status-@status.Status.ToLower().Replace(" ", "-")">@status.Count</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,24 @@
+@model SchoolManagement.Models.MessageRecipient
+
+@{
+    ViewData["Title"] = "Message";
+    var message = Model.Message!;
+}
+
+<button type="button" class="btn btn-outline-secondary btn-sm mb-2" onclick="history.back()">Back</button>
+
+<div class="card">
+    <div class="card-body">
+        <h4 class="card-title mb-1">@message.Subject</h4>
+        <p class="text-muted mb-3">
+            From @message.SenderName (@message.SenderRole)
+            &middot; @message.RecipientSummary
+            &middot; @message.SentAt.ToLocalTime().ToString("f")
+        </p>
+        <p style="white-space: pre-wrap;">@message.Body</p>
+        @if (!User.IsInRole("Student"))
+        {
+            <a class="btn btn-primary" asp-action="Reply" asp-route-id="@Model.Id">Reply</a>
+        }
+    </div>
+</div>

@@ -1,0 +1,77 @@
+@model SchoolManagement.Models.Student
+
+@{
+    ViewData["Title"] = "Profile";
+}
+
+<div class="page-header">
+    <h1 class="page-title">My Profile</h1>
+    <p class="page-subtitle">Your student record</p>
+</div>
+
+@if (TempData["ProfileSuccess"] != null)
+{
+    <div class="alert alert-success">@TempData["ProfileSuccess"]</div>
+}
+
+<div class="panel-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Details</h2>
+        </div>
+        <div class="panel-body">
+            @if (!string.IsNullOrEmpty(Model.PhotoPath))
+            {
+                <div class="p-3 pb-0">
+                    <img src="@Model.PhotoPath" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:50%;" />
+                </div>
+            }
+            <ul class="entity-list">
+                <li class="entity-list-item entity-list-item-static">
+                    <div class="entity-title">Full Name</div>
+                    <div class="entity-meta">@Model.FullName</div>
+                </li>
+                <li class="entity-list-item entity-list-item-static">
+                    <div class="entity-title">Admission Number</div>
+                    <div class="entity-meta">@Model.AdmissionNumber</div>
+                </li>
+                <li class="entity-list-item entity-list-item-static">
+                    <div class="entity-title">Class</div>
+                    <div class="entity-meta">@(Model.Class?.Name ?? "Unassigned")</div>
+                </li>
+                <li class="entity-list-item entity-list-item-static">
+                    <div class="entity-title">Gender</div>
+                    <div class="entity-meta">@Model.Gender</div>
+                </li>
+                <li class="entity-list-item entity-list-item-static">
+                    <div class="entity-title">Date of Birth</div>
+                    <div class="entity-meta">@Model.DateOfBirth.ToShortDateString()</div>
+                </li>
+                <li class="entity-list-item entity-list-item-static">
+                    <div class="entity-title">Email</div>
+                    <div class="entity-meta">@Model.Email</div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Update Contact Info</h2>
+        </div>
+        <div class="panel-body">
+            <form method="post" asp-action="Profile" class="p-3">
+                @Html.AntiForgeryToken()
+                <div class="mb-3">
+                    <label class="form-label">Phone</label>
+                    <input type="text" name="phone" class="form-control" value="@Model.Phone" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Address</label>
+                    <textarea name="address" class="form-control">@Model.Address</textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </form>
+        </div>
+    </div>
+</div>

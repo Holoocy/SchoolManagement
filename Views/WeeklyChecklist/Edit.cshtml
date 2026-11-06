@@ -1,0 +1,72 @@
+@model SchoolManagement.Models.WeeklyChecklistItem
+
+@{
+    ViewData["Title"] = "Edit Checklist Item";
+}
+
+<div class="mb-3">
+    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<h2>Edit Checklist Item</h2>
+
+<form asp-action="Edit" enctype="multipart/form-data">
+    <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label asp-for="Title" class="form-label"></label>
+            <input asp-for="Title" class="form-control" />
+            <span asp-validation-for="Title" class="text-danger"></span>
+        </div>
+        @if (User.IsInRole("Admin"))
+        {
+            <div class="col-md-6">
+                <label asp-for="AssignedTo" class="form-label"></label>
+                <select asp-for="AssignedTo" class="form-select" asp-items="ViewBag.TeacherNames">
+                    <option value="">-- Select Teacher --</option>
+                </select>
+                <span asp-validation-for="AssignedTo" class="text-danger"></span>
+            </div>
+        }
+        <div class="col-md-6">
+            <label asp-for="DueDate" class="form-label"></label>
+            <input asp-for="DueDate" class="form-control" />
+            <span asp-validation-for="DueDate" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Status" class="form-label"></label>
+            <select asp-for="Status" class="form-select">
+                <option value="In Progress">In Progress</option>
+                <option value="Done">Done</option>
+            </select>
+            <span asp-validation-for="Status" class="text-danger"></span>
+        </div>
+        <div class="col-md-12">
+            <label asp-for="Description" class="form-label"></label>
+            <textarea asp-for="Description" class="form-control"></textarea>
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Document @(Model.DocumentPath != null && (bool)ViewBag.CanSeeDocument ? "(replace)" : "(optional)")</label>
+            @if (Model.DocumentPath != null && (bool)ViewBag.CanSeeDocument)
+            {
+                <div class="mb-1"><a href="@Model.DocumentPath" target="_blank">View current document</a></div>
+            }
+            <input type="file" name="documentFile" class="form-control" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Document Visible To</label>
+            <select asp-for="DocumentVisibility" class="form-select">
+                <option value="TeacherOnly">Teacher Only</option>
+                <option value="Admin">Admin</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>

@@ -1,0 +1,38 @@
+@model IEnumerable<SchoolManagement.Controllers.ClassListItem>
+
+@{
+    ViewData["Title"] = "Classes";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <button type="button" class="btn btn-outline-secondary btn-sm mb-2" onclick="history.back()">Back</button>
+        <h2 class="mb-0">Classes</h2>
+    </div>
+    <a class="btn btn-primary" asp-action="Create">Add Class</a>
+</div>
+
+<table class="table table-striped table-bordered">
+    <thead class="table-dark">
+        <tr>
+            <th>Name</th>
+            <th>Students</th>
+            <th>Teachers Assigned</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.StudentCount</td>
+                <td>@item.TeacherCount</td>
+                <td>
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+                    <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

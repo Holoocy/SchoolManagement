@@ -1,0 +1,112 @@
+@model SchoolManagement.Models.SettingsViewModel
+
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<div class="page-header">
+    <h1 class="page-title">Settings</h1>
+    <p class="page-subtitle">Manage your profile and account security</p>
+</div>
+
+@if (TempData["SettingsSuccess"] != null)
+{
+    <div class="alert alert-success">@TempData["SettingsSuccess"]</div>
+}
+
+<div class="panel-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Profile</h2>
+        </div>
+        <div class="panel-body">
+            <ul class="entity-list">
+                <li class="entity-list-item entity-list-item-static">
+                    <div class="entity-title">Full Name</div>
+                    <div class="entity-meta">@Model.FullName</div>
+                </li>
+                <li class="entity-list-item entity-list-item-static">
+                    <div class="entity-title">Username</div>
+                    <div class="entity-meta">@Model.Username</div>
+                </li>
+                <li class="entity-list-item entity-list-item-static">
+                    <div class="entity-title">Email</div>
+                    <div class="entity-meta">@Model.Email</div>
+                </li>
+                <li class="entity-list-item entity-list-item-static">
+                    <div class="entity-title">Roles</div>
+                    <div class="entity-meta">@string.Join(", ", Model.Roles)</div>
+                </li>
+                <li class="entity-list-item entity-list-item-static">
+                    <div class="entity-title">Member Since</div>
+                    <div class="entity-meta">@Model.CreatedAt.ToShortDateString()</div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Change Password</h2>
+        </div>
+        <div class="panel-body">
+            <form method="post" asp-controller="Settings" asp-action="ChangePassword" class="p-3">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+                <div class="mb-3">
+                    <label asp-for="ChangePassword.CurrentPassword" class="form-label"></label>
+                    <input asp-for="ChangePassword.CurrentPassword" class="form-control" />
+                    <span asp-validation-for="ChangePassword.CurrentPassword" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="ChangePassword.NewPassword" class="form-label"></label>
+                    <input asp-for="ChangePassword.NewPassword" class="form-control" />
+                    <span asp-validation-for="ChangePassword.NewPassword" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="ChangePassword.ConfirmPassword" class="form-label"></label>
+                    <input asp-for="ChangePassword.ConfirmPassword" class="form-control" />
+                    <span asp-validation-for="ChangePassword.ConfirmPassword" class="text-danger"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Update Password</button>
+            </form>
+        </div>
+    </div>
+
+    @if (User.IsInRole("Admin"))
+    {
+        <div class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">School Branding</h2>
+            </div>
+            <div class="panel-body">
+                <form method="post" asp-controller="Settings" asp-action="UpdateBranding" enctype="multipart/form-data" class="p-3">
+                    @Html.AntiForgeryToken()
+
+                    @if (!string.IsNullOrEmpty(Model.Branding.CurrentLogoPath))
+                    {
+                        <div class="mb-3">
+                            <label class="form-label d-block">Current Logo</label>
+                            <img src="@Model.Branding.CurrentLogoPath" alt="Current logo" style="width:64px;height:64px;object-fit:cover;border-radius:8px;" />
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label asp-for="Branding.LogoFile" class="form-label">@(string.IsNullOrEmpty(Model.Branding.CurrentLogoPath) ? "Upload a Logo" : "Replace Logo")</label>
+                        <input asp-for="Branding.LogoFile" type="file" accept="image/*" class="form-control" />
+                        <div class="form-text">Shown in the sidebar beside your school name. Leave blank to keep the current logo.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Branding.ThemeColor" class="form-label">Theme Color</label>
+                        <input asp-for="Branding.ThemeColor" type="color" class="form-control form-control-color" />
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Save Branding</button>
+                </form>
+            </div>
+        </div>
+    }
+</div>

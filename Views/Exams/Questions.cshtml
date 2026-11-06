@@ -1,0 +1,73 @@
+@model SchoolManagement.Models.Exam
+
+@{
+    ViewData["Title"] = "Exam Questions";
+    var canEdit = Model.Status == "Draft";
+}
+
+<div class="mb-3">
+    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<h2>@Model.Title</h2>
+<p class="text-muted">@Model.Subject?.Name &middot; @Model.Class?.Name &middot; <span class="status-badge status-@Model.Status.ToLower()">@Model.Status</span></p>
+
+@if (TempData["ExamSuccess"] != null)
+{
+    <div class="alert alert-success">@TempData["ExamSuccess"]</div>
+}
+@if (TempData["ExamError"] != null)
+{
+    <div class="alert alert-danger">@TempData["ExamError"]</div>
+}
+
+@if (!canEdit)
+{
+    <p class="text-muted">Questions can no longer be changed once the exam has been submitted for approval.</p>
+}
+else
+{
+    <a class="btn btn-primary mb-3" asp-action="AddQuestion" asp-route-examId="@Model.Id">Add Question</a>
+}
+
+@if (!Model.Questions.Any())
+{
+    <p class="text-muted">No questions added yet.</p>
+}
+else
+{
+    <ol class="list-group list-group-numbered">
+        @foreach (var q in Model.Questions)
+        {
+            <li class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="fw-bold">@q.QuestionText</div>
+                        <div class="small text-muted">
+                            A. @q.OptionA &nbsp; B. @q.OptionB &nbsp; C. @q.OptionC &nbsp; D. @q.OptionD
+                        </div>
+                        <div class="small text-success">Correct: Option @q.CorrectOption</div>
+                    </div>
+                    @if (canEdit)
+                    {
+                        <div class="text-nowrap">
+                            <a class="btn btn-sm btn-outline-secondary" asp-action="EditQuestion" asp-route-id="@q.Id">Edit</a>
+                            <form method="post" asp-action="DeleteQuestion" asp-route-id="@q.Id" asp-route-examId="@Model.Id" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            </li>
+        }
+    </ol>
+}
+
+@if (canEdit && Model.Questions.Any())
+{
+    <form method="post" asp-action="SubmitForApproval" asp-route-id="@Model.Id" class="mt-3">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-primary">Submit for Approval</button>
+    </form>
+}

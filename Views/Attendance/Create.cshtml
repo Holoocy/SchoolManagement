@@ -1,0 +1,95 @@
+@model List<SchoolManagement.Controllers.TakeAttendanceRow>
+@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    ViewData["Title"] = "Record Attendance";
+    DateTime attendanceDate = ViewBag.Date;
+}
+
+<div class="mb-3">
+    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<h2>Record Attendance</h2>
+
+@if (TempData["AttendanceSuccess"] != null)
+{
+    <div class="alert alert-success">@TempData["AttendanceSuccess"]</div>
+}
+
+<form method="get" asp-action="Create" class="row g-2 align-items-end mb-3">
+    <div class="col-auto">
+        <label for="date" class="form-label">Date</label>
+        <input type="date" name="date" id="date" class="form-control" value="@attendanceDate.ToString("yyyy-MM-dd")" />
+    </div>
+    <div class="col-auto">
+        <label for="classId" class="form-label">Grade Level</label>
+        <select name="classId" id="classId" class="form-select" asp-items="ViewBag.Classes">
+            <option value="">All Grade Levels</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-secondary">Load</button>
+    </div>
+</form>
+
+@{
+    var classOptionCount = ((IEnumerable<SelectListItem>)ViewBag.Classes).Count();
+}
+@if (!Model.Any())
+{
+    if (ViewBag.SelectedClassId == null && classOptionCount > 1)
+    {
+        <p class="empty-state">Select a grade level above to view its students.</p>
+    }
+    else
+    {
+        <p class="empty-state">No active students found@(ViewBag.SelectedClassId != null ? " in this grade level" : "").</p>
+    }
+}
+else
+{
+    <form asp-action="Create" method="post">
+        <input type="hidden" name="date" value="@attendanceDate.ToString("yyyy-MM-dd")" />
+        <input type="hidden" name="classId" value="@ViewBag.SelectedClassId" />
+
+        <table class="table table-striped table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Student</th>
+                    <th>Grade Level</th>
+                    <th class="text-center">Present</th>
+                    <th class="text-center">Late</th>
+                    <th class="text-center">Absent</th>
+                    <th class="text-center">Excused</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (var i = 0; i < Model.Count; i++)
+                {
+                    <tr>
+                        <td>
+                            @Model[i].StudentName
+                            <input type="hidden" name="rows[@i].StudentId" value="@Model[i].StudentId" />
+                        </td>
+                        <td>@(Model[i].ClassName ?? "Unassigned")</td>
+                        <td class="text-center">
+                            <input type="radio" class="form-check-input" name="rows[@i].Status" value="Present" checked="@(Model[i].Status == "Present" ? "checked" : null)" />
+                        </td>
+                        <td class="text-center">
+                            <input type="radio" class="form-check-input" name="rows[@i].Status" value="Late" checked="@(Model[i].Status == "Late" ? "checked" : null)" />
+                        </td>
+                        <td class="text-center">
+                            <input type="radio" class="form-check-input" name="rows[@i].Status" value="Absent" checked="@(Model[i].Status == "Absent" ? "checked" : null)" />
+                        </td>
+                        <td class="text-center">
+                            <input type="radio" class="form-check-input" name="rows[@i].Status" value="Excused" checked="@(Model[i].Status == "Excused" ? "checked" : null)" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <button type="submit" class="btn btn-primary">Save Attendance</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </form>
+}

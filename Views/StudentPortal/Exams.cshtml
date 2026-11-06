@@ -1,0 +1,53 @@
+@model IEnumerable<SchoolManagement.Models.Exam>
+
+@{
+    ViewData["Title"] = "Exam Questions";
+    var submissions = (Dictionary<int, SchoolManagement.Models.ExamSubmission>)ViewBag.Submissions;
+}
+
+<div class="page-header">
+    <h1 class="page-title">Exam Questions</h1>
+    <p class="page-subtitle">Exams available to you</p>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="panel">
+        <div class="panel-body">
+            <p class="empty-state">No exams are available right now.</p>
+        </div>
+    </div>
+}
+else
+{
+    <table class="table table-striped table-bordered align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>Subject</th>
+                <th>Title</th>
+                <th>Start Date</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var exam in Model)
+            {
+                <tr>
+                    <td>@exam.Subject?.Name</td>
+                    <td>@exam.Title</td>
+                    <td>@(exam.StartDate != null ? exam.StartDate.Value.ToShortDateString() : "—")</td>
+                    <td>
+                        @if (submissions.TryGetValue(exam.Id, out var submission))
+                        {
+                            <span class="status-badge status-done">Score: @submission.Score/@submission.TotalQuestions</span>
+                        }
+                        else
+                        {
+                            <a class="btn btn-sm btn-primary" asp-action="TakeExam" asp-route-examId="@exam.Id">Take Exam</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

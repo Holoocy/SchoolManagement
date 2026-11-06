@@ -1,0 +1,49 @@
+@model IEnumerable<SchoolManagement.Controllers.UserListItem>
+
+@{
+    ViewData["Title"] = "User Accounts";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <button type="button" class="btn btn-outline-secondary btn-sm mb-2" onclick="history.back()">Back</button>
+        <h2 class="mb-0">User Accounts</h2>
+    </div>
+</div>
+
+@if (TempData["UserSuccess"] != null)
+{
+    <div class="alert alert-success">@TempData["UserSuccess"]</div>
+}
+
+<table class="table table-striped table-bordered align-middle">
+    <thead class="table-dark">
+        <tr>
+            <th>Full Name</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Roles</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.FullName</td>
+                <td>@item.Username</td>
+                <td>@item.Email</td>
+                <td>@string.Join(", ", item.Roles)</td>
+                <td>@(item.IsActive ? "Active" : "Inactive")</td>
+                <td class="text-nowrap">
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="ResetPassword" asp-route-id="@item.Id">Reset Password</a>
+                    <form method="post" asp-action="ToggleActive" asp-route-id="@item.Id" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-outline-warning">@(item.IsActive ? "Deactivate" : "Activate")</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

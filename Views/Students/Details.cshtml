@@ -1,0 +1,51 @@
+@model SchoolManagement.Models.Student
+
+@{
+    ViewData["Title"] = "Student Details";
+}
+
+<div class="mb-3">
+    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<h2>Student Details</h2>
+
+<div class="card">
+    <div class="card-body">
+        @if (!string.IsNullOrEmpty(Model.PhotoPath))
+        {
+            <img src="@Model.PhotoPath" alt="" class="mb-3" style="width:96px;height:96px;object-fit:cover;border-radius:50%;" />
+        }
+        <dl class="row">
+            <dt class="col-sm-3">Full Name</dt>
+            <dd class="col-sm-9">@Model.FullName</dd>
+            <dt class="col-sm-3">Admission Number</dt>
+            <dd class="col-sm-9">@Model.AdmissionNumber</dd>
+            <dt class="col-sm-3">Class</dt>
+            <dd class="col-sm-9">@(Model.Class?.Name ?? "—")</dd>
+            <dt class="col-sm-3">Academic Calendar</dt>
+            <dd class="col-sm-9">@(Model.AcademicCalendar ?? "—")</dd>
+            <dt class="col-sm-3">Date of Birth</dt>
+            <dd class="col-sm-9">@Model.DateOfBirth.ToShortDateString()</dd>
+            <dt class="col-sm-3">Gender</dt>
+            <dd class="col-sm-9">@Model.Gender</dd>
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9">@Model.Email</dd>
+            <dt class="col-sm-3">Phone</dt>
+            <dd class="col-sm-9">@Model.Phone</dd>
+            <dt class="col-sm-3">Address</dt>
+            <dd class="col-sm-9">@Model.Address</dd>
+            <dt class="col-sm-3">Enrollment Date</dt>
+            <dd class="col-sm-9">@Model.EnrollmentDate.ToShortDateString()</dd>
+            <dt class="col-sm-3">Status</dt>
+            <dd class="col-sm-9">@(Model.IsActive ? "Active" : "Inactive")</dd>
+        </dl>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+    <a asp-action="Transfer" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Transfer</a>
+    <a asp-action="IdCard" asp-route-id="@Model.Id" class="btn btn-outline-secondary">ID Card</a>
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+</div>

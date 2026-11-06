@@ -1,0 +1,36 @@
+@model SchoolManagement.Models.WeeklyChecklistItem
+
+@{
+    ViewData["Title"] = "Delete Checklist Item";
+}
+
+<div class="mb-3">
+    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<h2>Delete Checklist Item</h2>
+
+<div class="alert alert-warning">
+    <strong>Are you sure you want to delete this checklist item?</strong>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Title</dt>
+            <dd class="col-sm-9">@Model.Title</dd>
+            <dt class="col-sm-3">Assigned To</dt>
+            <dd class="col-sm-9">@Model.AssignedTo</dd>
+            <dt class="col-sm-3">Due Date</dt>
+            <dd class="col-sm-9">@Model.DueDate.ToShortDateString()</dd>
+            <dt class="col-sm-3">Status</dt>
+            <dd class="col-sm-9">@Model.Status</dd>
+        </dl>
+    </div>
+</div>
+
+<form asp-action="Delete">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>

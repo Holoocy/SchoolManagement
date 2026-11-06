@@ -1,0 +1,52 @@
+@model IEnumerable<SchoolManagement.Controllers.AttendanceDaySummaryRow>
+
+@{
+    ViewData["Title"] = "Attendance";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <button type="button" class="btn btn-outline-secondary btn-sm mb-2" onclick="history.back()">Back</button>
+        <h2 class="mb-0">Attendance</h2>
+    </div>
+    <a class="btn btn-primary" asp-action="Create">Record Attendance</a>
+</div>
+
+<form method="get" asp-action="Index" class="row g-2 align-items-end mb-4">
+    <div class="col-auto">
+        <label for="searchDate" class="form-label">Search by date</label>
+        <input type="date" id="searchDate" name="searchDate" class="form-control" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-primary">Search</button>
+    </div>
+</form>
+
+@if (!Model.Any())
+{
+    <p class="text-muted">No attendance has been recorded yet.</p>
+}
+else
+{
+    <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>Date</th>
+                <th>Students Marked</th>
+                <th>Present</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var day in Model)
+            {
+                <tr>
+                    <td><a asp-action="Day" asp-route-date="@day.Date.ToString("yyyy-MM-dd")">@day.Date.ToShortDateString()</a></td>
+                    <td>@day.TotalMarked</td>
+                    <td>@day.PresentCount</td>
+                    <td><a class="btn btn-sm btn-outline-primary" asp-action="Day" asp-route-date="@day.Date.ToString("yyyy-MM-dd")">View</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

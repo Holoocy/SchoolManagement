@@ -1,0 +1,48 @@
+@model IEnumerable<SchoolManagement.Models.AttendanceRecord>
+
+@{
+    ViewData["Title"] = "Attendance for " + ((DateTime)ViewBag.Date).ToShortDateString();
+    var date = (DateTime)ViewBag.Date;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm mb-2">Back to Attendance</a>
+        <h2 class="mb-0">Students marked on @date.ToShortDateString()</h2>
+    </div>
+    <a class="btn btn-primary" asp-action="Create" asp-route-date="@date.ToString("yyyy-MM-dd")">Edit This Day</a>
+</div>
+
+@if (!Model.Any())
+{
+    <p class="text-muted">No students were marked on this date.</p>
+}
+else
+{
+    <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>Student</th>
+                <th>Class</th>
+                <th>Status</th>
+                <th>Remarks</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Student?.FullName</td>
+                    <td>@item.Student?.Class?.Name</td>
+                    <td>@item.Status</td>
+                    <td>@item.Remarks</td>
+                    <td>
+                        <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+                        <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

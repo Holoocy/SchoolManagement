@@ -1,0 +1,93 @@
+@model SchoolManagement.Models.SignupViewModel
+@inject SchoolManagement.Services.ITenantProvider TenantProvider
+
+@{
+    ViewData["Title"] = "Sign Up";
+}
+
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-1">Create Your Account</h3>
+                    <p class="text-muted text-center mb-4">@(TenantProvider.SchoolName ?? "School Management")</p>
+
+                    <form method="post" asp-action="Signup" asp-controller="Auth">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+                        <div class="mb-3">
+                            <label for="Role" class="form-label">I am a</label>
+                            <select name="Role" id="Role" class="form-select" onchange="updateLinkCodeLabel()">
+                                <option value="Teacher" selected="@(Model.Role == "Teacher" ? "selected" : null)">Teacher</option>
+                                <option value="Student" selected="@(Model.Role == "Student" || Model.Role == null ? "selected" : null)">Student</option>
+                                <option value="Parent" selected="@(Model.Role == "Parent" ? "selected" : null)">Parent</option>
+                            </select>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="FullName" class="form-label"></label>
+                                <input asp-for="FullName" class="form-control" />
+                                <span asp-validation-for="FullName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Username" class="form-label"></label>
+                                <input asp-for="Username" class="form-control" />
+                                <span asp-validation-for="Username" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Email" class="form-label"></label>
+                                <input asp-for="Email" class="form-control" />
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="LinkCode" class="form-label" id="linkCodeLabel">Admission Number</label>
+                                <input asp-for="LinkCode" class="form-control" />
+                                <span asp-validation-for="LinkCode" class="text-danger"></span>
+                                <div class="form-text" id="linkCodeHelp">Ask the school office for your Admission Number.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Password" class="form-label"></label>
+                                <input asp-for="Password" class="form-control" />
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="ConfirmPassword" class="form-label"></label>
+                                <input asp-for="ConfirmPassword" class="form-control" />
+                                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 mt-4">Create Account</button>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <small class="text-muted">Already have an account? <a asp-controller="Auth" asp-action="Login">Log in</a></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function updateLinkCodeLabel() {
+            var role = document.getElementById('Role').value;
+            var label = document.getElementById('linkCodeLabel');
+            var help = document.getElementById('linkCodeHelp');
+            if (role === 'Teacher') {
+                label.textContent = 'Employee ID';
+                help.textContent = 'Ask the school office for your Employee ID.';
+            } else if (role === 'Parent') {
+                label.textContent = "Child's Admission Number";
+                help.textContent = "Enter your child's Admission Number to link your account.";
+            } else {
+                label.textContent = 'Admission Number';
+                help.textContent = 'Ask the school office for your Admission Number.';
+            }
+        }
+        updateLinkCodeLabel();
+    </script>
+}

@@ -1,0 +1,58 @@
+@model SchoolManagement.Models.ParentDashboardViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="page-header">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Overview of your children's progress</p>
+</div>
+
+@if (!Model.Children.Any())
+{
+    <div class="panel">
+        <div class="panel-body">
+            <p class="empty-state">No children linked to your account yet. Contact the school office if this seems wrong.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="stat-grid">
+        @foreach (var child in Model.Children)
+        {
+            <div class="stat-card">
+                <div class="stat-icon stat-icon-blue">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                </div>
+                <div class="stat-value">@child.FullName</div>
+                <div class="stat-label">@(child.ClassName ?? "Unassigned class")</div>
+                <div class="stat-sub">@child.AttendanceRate% attendance &middot; @child.PendingAssignments pending assignments</div>
+                <div class="stat-sub">Average grade: @(child.AverageGrade != null ? $"{child.AverageGrade}%" : "—")</div>
+            </div>
+        }
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">My Children</h2>
+        </div>
+        <div class="panel-body">
+            <ul class="entity-list">
+                @foreach (var child in Model.Children)
+                {
+                    <li class="entity-list-item">
+                        <a asp-controller="ParentPortal" asp-action="Child" asp-route-studentId="@child.StudentId">
+                            <div>
+                                <div class="entity-title">@child.FullName</div>
+                                <div class="entity-meta">@(child.ClassName ?? "Unassigned class")</div>
+                            </div>
+                            <span class="status-badge @(child.AttendanceRate >= 75 ? "status-present" : "status-absent")">@child.AttendanceRate% attendance</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+}

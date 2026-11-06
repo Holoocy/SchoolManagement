@@ -1,0 +1,117 @@
+@model SchoolManagement.Models.TeacherDashboardViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="page-header">
+    <h1 class="page-title">Welcome, @Model.TeacherName</h1>
+    <p class="page-subtitle">Your subjects, classes and assignment activity</p>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <div class="stat-value">@Model.Subjects.Count</div>
+        <div class="stat-label">My Subjects</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-teal">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        </div>
+        <div class="stat-value">@Model.Classes.Count</div>
+        <div class="stat-label">My Classes</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-amber">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        </div>
+        <div class="stat-value">@Model.TotalAssignments</div>
+        <div class="stat-label">Assignments <span class="stat-sub">@Model.PendingAssignments pending</span></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-slate">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div class="stat-value">@Model.TotalWeeklyChecklists</div>
+        <div class="stat-label">Weekly Checklist <span class="stat-sub">@Model.PendingWeeklyChecklists pending</span></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-violet">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.2H22l-6 4.4 2.3 7.1L12 16.3 5.7 20.7 8 13.6l-6-4.4h7.6z"/></svg>
+        </div>
+        <div class="stat-value">@(Model.AverageGradeGiven != null ? $"{Model.AverageGradeGiven}%" : "—")</div>
+        <div class="stat-label">Average Grade Given <span class="stat-sub">@Model.SubmissionsToGrade to grade</span></div>
+    </div>
+</div>
+
+<div class="panel-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">My Subjects</h2>
+        </div>
+        <div class="panel-body">
+            @if (!Model.Subjects.Any())
+            {
+                <p class="empty-state">No subjects assigned to you yet. Ask an admin to assign you.</p>
+            }
+            else
+            {
+                <ul class="entity-list">
+                    @foreach (var subject in Model.Subjects)
+                    {
+                        <li class="entity-list-item entity-list-item-static"><div class="entity-title">@subject</div></li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Recent Assignments</h2>
+            <a asp-controller="Assignments" asp-action="Index" class="panel-link">View all</a>
+        </div>
+        <div class="panel-body">
+            @if (!Model.RecentAssignments.Any())
+            {
+                <p class="empty-state">No assignments for your subjects yet.</p>
+            }
+            else
+            {
+                <ul class="entity-list">
+                    @foreach (var assignment in Model.RecentAssignments)
+                    {
+                        <li class="entity-list-item">
+                            <a asp-controller="Assignments" asp-action="Edit" asp-route-id="@assignment.Id">
+                                <div>
+                                    <div class="entity-title">@assignment.Title</div>
+                                    <div class="entity-meta">@assignment.Subject?.Name &middot; Due @assignment.DueDate.ToShortDateString()</div>
+                                </div>
+                                <span class="status-badge status-@assignment.Status.ToLower().Replace(" ", "-")">@assignment.Status</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="panel-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Quick Actions</h2>
+        </div>
+        <div class="panel-body">
+            <div class="quick-actions">
+                <a class="quick-action" asp-controller="Attendance" asp-action="Index">Take Attendance</a>
+                <a class="quick-action" asp-controller="Assignments" asp-action="Create">Create Assignment</a>
+                <a class="quick-action" asp-controller="Assignments" asp-action="Index">Grade Submissions</a>
+                <a class="quick-action" asp-controller="WeeklyChecklist" asp-action="Index">Weekly Checklist</a>
+            </div>
+        </div>
+    </div>
+</div>

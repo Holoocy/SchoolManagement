@@ -1,0 +1,53 @@
+@model SchoolManagement.Models.AttendanceRecord
+
+@{
+    ViewData["Title"] = "Edit Attendance";
+}
+
+<div class="mb-3">
+    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<h2>Edit Attendance</h2>
+
+<form asp-action="Edit">
+    <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label asp-for="StudentId" class="form-label"></label>
+            <select asp-for="StudentId" class="form-select" asp-items="ViewBag.Students"></select>
+            <span asp-validation-for="StudentId" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="AttendanceDate" class="form-label"></label>
+            <input asp-for="AttendanceDate" class="form-control" />
+            <span asp-validation-for="AttendanceDate" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Status" class="form-label d-block"></label>
+            <div class="btn-group" role="group">
+                <input type="radio" class="btn-check" name="Status" id="statusPresent" value="Present" autocomplete="off" checked="@(Model.Status == "Present" ? "checked" : null)" />
+                <label class="btn btn-outline-success" for="statusPresent">Present</label>
+                <input type="radio" class="btn-check" name="Status" id="statusAbsent" value="Absent" autocomplete="off" checked="@(Model.Status == "Absent" ? "checked" : null)" />
+                <label class="btn btn-outline-danger" for="statusAbsent">Absent</label>
+                <input type="radio" class="btn-check" name="Status" id="statusLate" value="Late" autocomplete="off" checked="@(Model.Status == "Late" ? "checked" : null)" />
+                <label class="btn btn-outline-warning" for="statusLate">Late</label>
+                <input type="radio" class="btn-check" name="Status" id="statusExcused" value="Excused" autocomplete="off" checked="@(Model.Status == "Excused" ? "checked" : null)" />
+                <label class="btn btn-outline-secondary" for="statusExcused">Excused</label>
+            </div>
+            <span asp-validation-for="Status" class="text-danger d-block"></span>
+        </div>
+        <div class="col-md-12">
+            <label asp-for="Remarks" class="form-label"></label>
+            <textarea asp-for="Remarks" class="form-control"></textarea>
+            <span asp-validation-for="Remarks" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>

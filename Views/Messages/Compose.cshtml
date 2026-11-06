@@ -1,0 +1,197 @@
+@model SchoolManagement.Models.MessageComposeViewModel
+
+@{
+    ViewData["Title"] = "Compose Message";
+    var isParent = User.IsInRole("Parent");
+    var role = User.IsInRole("Admin") ? "Admin" : User.IsInRole("Teacher") ? "Teacher" : "Parent";
+    var audienceLabels = new Dictionary<string, string>
+    {
+        ["Parent"] = "Parent(s)",
+        ["Teacher"] = "Teacher(s)",
+        ["Admin"] = "Admin"
+    };
+}
+
+<button type="button" class="btn btn-outline-secondary btn-sm mb-2" onclick="history.back()">Back</button>
+
+<div class="card">
+    <div class="card-body">
+        <h4 class="card-title mb-3">Compose Message</h4>
+
+        <form method="post" asp-action="Compose" data-role="@role">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+            <div class="mb-3">
+                <label class="form-label">Send to</label>
+                <select asp-for="Audience" class="form-select" id="audienceSelect" data-no-choices>
+                    @foreach (var a in Model.AvailableAudiences)
+                    {
+                        <option value="@a">@audienceLabels[a]</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-3 d-none" id="scopeGroup">
+                <label class="form-label">Scope</label>
+                <select asp-for="Scope" class="form-select" id="scopeSelect" data-no-choices>
+                    <option value="Individual">A specific person</option>
+                    <option value="Class">Everyone in a class</option>
+                    @if (Model.CanSendToSchool)
+                    {
+                        <option value="School" class="school-scope-option">The entire school</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-3 recipient-group d-none" data-audience="Parent" id="parentGroup">
+                <label class="form-label">Parent</label>
+                <select name="RecipientUserId" class="form-select recipient-select" data-audience="Parent" data-no-choices>
+                    <option value="">-- Select a parent --</option>
+                    @foreach (var o in Model.ParentOptions)
+                    {
+                        <option value="@o.Value">@o.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-3 recipient-group d-none" data-audience="Teacher" id="teacherGroup">
+                <label class="form-label">Teacher</label>
+                <select name="RecipientUserId" class="form-select recipient-select" id="teacherRecipientSelect" data-audience="Teacher" data-no-choices>
+                    <option value="">-- Select a teacher --</option>
+                    @foreach (var o in Model.TeacherOptions)
+                    {
+                        var subjects = Model.TeacherSubjectNames.TryGetValue(int.Parse(o.Value!), out var s) ? s : "";
+                        <option value="@o.Value" data-subjects="@subjects">@o.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-3 d-none" id="classGroup">
+                <label asp-for="ClassId" class="form-label">Class</label>
+                <select asp-for="ClassId" class="form-select" asp-items="Model.ClassOptions" data-no-choices>
+                    <option value="">-- Select a class --</option>
+                </select>
+            </div>
+
+            @if (isParent)
+            {
+                <div class="mb-3 d-none" id="teacherSubjectHintGroup">
+                    <label class="form-label">Regarding Subject</label>
+                    <select name="RegardingSubject" class="form-select" id="teacherSubjectHintSelect" data-no-choices>
+                        <option value="">-- None --</option>
+                    </select>
+                </div>
+            }
+
+            <div class="mb-3">
+                <label asp-for="Body" class="form-label">Message</label>
+                <textarea asp-for="Body" class="form-control" rows="6"></textarea>
+                <span asp-validation-for="Body" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Send</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var role = document.querySelector('form[data-role]').getAttribute('data-role');
+        var audienceSelect = document.getElementById('audienceSelect');
+        var scopeGroup = document.getElementById('scopeGroup');
+        var scopeSelect = document.getElementById('scopeSelect');
+        var classGroup = document.getElementById('classGroup');
+        var classSelect = document.getElementById('ClassId');
+        var recipientGroups = document.querySelectorAll('.recipient-group');
+        var teacherSubjectHintGroup = document.getElementById('teacherSubjectHintGroup');
+        var teacherSubjectHintSelect = document.getElementById('teacherSubjectHintSelect');
+        var teacherRecipientSelect = document.getElementById('teacherRecipientSelect');
+
+        function setEnabled(select, enabled) {
+            if (select) select.disabled = !enabled;
+        }
+
+        function currentScope() {
+            // Parent never has a Scope selector - treat as always "Individual".
+            return role === 'Parent' ? 'Individual' : (scopeSelect ? scopeSelect.value : 'Individual');
+        }
+
+        function updateSchoolOption() {
+            if (!scopeSelect) return;
+            var schoolOption = scopeSelect.querySelector('.school-scope-option');
+            if (schoolOption && scopeSelect.value === 'School' && role !== 'Admin') {
+                scopeSelect.value = 'Individual';
+            }
+        }
+
+        function updateScopeVisibility() {
+            var audience = audienceSelect.value;
+            var showScope = role !== 'Parent' && audience !== 'Admin';
+            scopeGroup.classList.toggle('d-none', !showScope);
+
+            var showClass = showScope && scopeSelect.value === 'Class';
+            classGroup.classList.toggle('d-none', !showClass);
+            setEnabled(classSelect, showClass);
+        }
+
+        function updateRecipientVisibility() {
+            var audience = audienceSelect.value;
+            var scope = currentScope();
+            recipientGroups.forEach(function (group) {
+                var match = group.getAttribute('data-audience') === audience;
+                var show = match && audience !== 'Admin' && scope === 'Individual';
+                group.classList.toggle('d-none', !show);
+                setEnabled(group.querySelector('.recipient-select'), show);
+            });
+        }
+
+        function updateTeacherSubjectHint() {
+            if (!teacherSubjectHintGroup) return;
+            var audience = audienceSelect.value;
+            if (audience !== 'Teacher') {
+                teacherSubjectHintGroup.classList.add('d-none');
+                setEnabled(teacherSubjectHintSelect, false);
+                return;
+            }
+
+            var selectedOption = teacherRecipientSelect.options[teacherRecipientSelect.selectedIndex];
+            var subjects = (selectedOption && selectedOption.getAttribute('data-subjects')) || '';
+            teacherSubjectHintSelect.innerHTML = '';
+            if (!subjects) {
+                teacherSubjectHintGroup.classList.add('d-none');
+                setEnabled(teacherSubjectHintSelect, false);
+                return;
+            }
+
+            teacherSubjectHintGroup.classList.remove('d-none');
+            setEnabled(teacherSubjectHintSelect, true);
+            var opt = document.createElement('option');
+            opt.value = '';
+            opt.text = '-- None --';
+            teacherSubjectHintSelect.appendChild(opt);
+            subjects.split(',').map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (name) {
+                var o = document.createElement('option');
+                o.value = name;
+                o.text = name;
+                teacherSubjectHintSelect.appendChild(o);
+            });
+        }
+
+        function refreshAll() {
+            updateSchoolOption();
+            updateScopeVisibility();
+            updateRecipientVisibility();
+            updateTeacherSubjectHint();
+        }
+
+        audienceSelect.addEventListener('change', refreshAll);
+        if (scopeSelect) {
+            scopeSelect.addEventListener('change', refreshAll);
+        }
+        if (teacherRecipientSelect) {
+            teacherRecipientSelect.addEventListener('change', updateTeacherSubjectHint);
+        }
+
+        refreshAll();
+    })();
+</script>

@@ -1,0 +1,96 @@
+@model SchoolManagement.Models.Teacher
+
+@{
+    ViewData["Title"] = "Teacher Details";
+}
+
+<div class="mb-3">
+    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<h2>Teacher Details</h2>
+
+@if (TempData["TeacherSuccess"] != null)
+{
+    <div class="alert alert-success">@TempData["TeacherSuccess"]</div>
+}
+
+<div class="card mb-3">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Full Name</dt>
+            <dd class="col-sm-9">@Model.FullName</dd>
+            <dt class="col-sm-3">Employee ID</dt>
+            <dd class="col-sm-9">@Model.EmployeeId</dd>
+            <dt class="col-sm-3">Gender</dt>
+            <dd class="col-sm-9">@Model.Gender</dd>
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9">@Model.Email</dd>
+            <dt class="col-sm-3">Phone</dt>
+            <dd class="col-sm-9">@Model.Phone</dd>
+            <dt class="col-sm-3">Address</dt>
+            <dd class="col-sm-9">@Model.Address</dd>
+            <dt class="col-sm-3">Hire Date</dt>
+            <dd class="col-sm-9">@Model.HireDate.ToShortDateString()</dd>
+            <dt class="col-sm-3">Status</dt>
+            <dd class="col-sm-9">@(Model.IsActive ? "Active" : "Inactive")</dd>
+        </dl>
+    </div>
+</div>
+
+<div class="panel-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Assigned Subjects</h2>
+            <a asp-action="AssignSubjects" asp-route-id="@Model.Id" class="panel-link">Manage</a>
+        </div>
+        <div class="panel-body">
+            @{
+                var subjects = (List<string>)ViewBag.Subjects;
+            }
+            @if (!subjects.Any())
+            {
+                <p class="empty-state">No subjects assigned yet.</p>
+            }
+            else
+            {
+                <ul class="entity-list">
+                    @foreach (var name in subjects)
+                    {
+                        <li class="entity-list-item entity-list-item-static"><div class="entity-title">@name</div></li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Assigned Classes</h2>
+            <a asp-action="AssignClasses" asp-route-id="@Model.Id" class="panel-link">Manage</a>
+        </div>
+        <div class="panel-body">
+            @{
+                var classes = (List<string>)ViewBag.Classes;
+            }
+            @if (!classes.Any())
+            {
+                <p class="empty-state">No classes assigned yet.</p>
+            }
+            else
+            {
+                <ul class="entity-list">
+                    @foreach (var name in classes)
+                    {
+                        <li class="entity-list-item entity-list-item-static"><div class="entity-title">@name</div></li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+</div>

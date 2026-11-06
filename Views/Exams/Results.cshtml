@@ -1,0 +1,40 @@
+@model IEnumerable<SchoolManagement.Models.ExamSubmission>
+
+@{
+    ViewData["Title"] = "Exam Results";
+    var exam = (SchoolManagement.Models.Exam)ViewBag.Exam;
+}
+
+<div class="mb-3">
+    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<h2>@exam.Title &mdash; Results</h2>
+<p class="text-muted">@exam.Subject?.Name &middot; @exam.Class?.Name</p>
+
+@if (!Model.Any())
+{
+    <p class="text-muted">No students have taken this exam yet.</p>
+}
+else
+{
+    <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>Student</th>
+                <th>Score</th>
+                <th>Submitted</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var s in Model)
+            {
+                <tr>
+                    <td>@s.Student?.FullName</td>
+                    <td>@s.Score / @s.TotalQuestions</td>
+                    <td>@s.SubmittedAt.ToLocalTime().ToString("g")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

@@ -1,0 +1,252 @@
+@inject SchoolManagement.Services.ITenantProvider TenantProvider
+@inject SchoolManagement.Data.ApplicationDbContext DbContext
+@{
+    var currentController = (string?)ViewContext.RouteData.Values["controller"] ?? "";
+    var currentAction = (string?)ViewContext.RouteData.Values["action"] ?? "";
+
+    bool IsActive(params string[] controllers) =>
+        controllers.Any(c => string.Equals(c, currentController, StringComparison.OrdinalIgnoreCase));
+
+    bool IsActiveAction(string controller, string action) =>
+        string.Equals(controller, currentController, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(action, currentAction, StringComparison.OrdinalIgnoreCase);
+
+    var schoolInitials = string.Concat((TenantProvider.SchoolName ?? "SM")
+        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+        .Take(2)
+        .Select(w => char.ToUpper(w[0])));
+
+    var currentUserIdClaim = ViewContext.HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var unreadMessageCount = currentUserIdClaim != null
+        ? await DbContext.MessageRecipients.CountAsync(r => r.RecipientUserId == int.Parse(currentUserIdClaim) && !r.IsRead)
+        : 0;
+
+    var sidebarUserName = ViewContext.HttpContext.User.FindFirst("FullName")?.Value ?? "";
+    var sidebarUserInitials = string.Concat(sidebarUserName
+        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+        .Take(2)
+        .Select(w => char.ToUpper(w[0])));
+    var sidebarUserRoles = string.Join(", ", ViewContext.HttpContext.User
+        .FindAll(System.Security.Claims.ClaimTypes.Role)
+        .Select(c => c.Value));
+}
+
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        @if (!string.IsNullOrEmpty(TenantProvider.LogoPath))
+        {
+            <img src="@TenantProvider.LogoPath" alt="@TenantProvider.SchoolName logo" class="sidebar-brand-logo" />
+        }
+        else
+        {
+            <span class="sidebar-brand-mark">@schoolInitials</span>
+        }
+        <span class="sidebar-brand-copy">
+            <span class="sidebar-brand-text">@(TenantProvider.SchoolName ?? "SchoolManagement")</span>
+            <span class="sidebar-brand-sub">School Portal</span>
+        </span>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="sidebar-favorites">
+            <div class="sidebar-favorites-title">Quick Access</div>
+            <div class="sidebar-favorites-grid">
+                <a class="favorite-tile @(IsActive("Dashboard") ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
+                    <span class="favorite-tile-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                    </span>
+                    <span class="favorite-tile-label">Dashboard</span>
+                </a>
+                <a class="favorite-tile @(IsActive("Messages") ? "active" : "")" asp-controller="Messages" asp-action="Index">
+                    <span class="favorite-tile-icon is-info">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </span>
+                    <span class="favorite-tile-label">Messages</span>
+                    @if (unreadMessageCount > 0)
+                    {
+                        <span class="favorite-tile-count">@unreadMessageCount</span>
+                    }
+                </a>
+            </div>
+        </div>
+
+        <div class="sidebar-section-label">Main</div>
+        @if (ViewContext.HttpContext.User.IsInRole("Admin"))
+        {
+            <a class="sidebar-link @(IsActive("Dashboard") ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                <span>Dashboard</span>
+            </a>
+            <a class="sidebar-link @(IsActive("Students") ? "active" : "")" asp-controller="Students" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                <span>Students</span>
+            </a>
+            <a class="sidebar-link @(IsActive("Teachers") ? "active" : "")" asp-controller="Teachers" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+                <span>Teachers</span>
+            </a>
+            <a class="sidebar-link @(IsActive("Subjects") ? "active" : "")" asp-controller="Subjects" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                <span>Subjects</span>
+            </a>
+            <a class="sidebar-link @(IsActive("Assignments") ? "active" : "")" asp-controller="Assignments" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6M9 9h1"/></svg>
+                <span>Assignments</span>
+            </a>
+            <a class="sidebar-link @(IsActive("WeeklyChecklist") ? "active" : "")" asp-controller="WeeklyChecklist" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                <span>Weekly Checklist</span>
+            </a>
+            <a class="sidebar-link @(IsActive("Attendance") ? "active" : "")" asp-controller="Attendance" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>
+                <span>Attendance</span>
+            </a>
+            <a class="sidebar-link @(IsActive("Reports") ? "active" : "")" asp-controller="Reports" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>
+                <span>Reports</span>
+            </a>
+            <a class="sidebar-link @(IsActive("Exams") ? "active" : "")" asp-controller="Exams" asp-action="PendingApproval">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"/></svg>
+                <span>Exams Approval</span>
+            </a>
+            <a class="sidebar-link @(IsActive("Settings") ? "active" : "")" asp-controller="Settings" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span>Settings</span>
+            </a>
+            <a class="sidebar-link @(IsActive("Messages") ? "active" : "")" asp-controller="Messages" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>Messages</span>
+                @if (unreadMessageCount > 0)
+                {
+                    <span class="badge bg-danger ms-auto">@unreadMessageCount</span>
+                }
+            </a>
+
+            <div class="sidebar-section-label">Academic Setup</div>
+            <a class="sidebar-link @(IsActive("Classes") ? "active" : "")" asp-controller="Classes" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+                <span>Classes</span>
+            </a>
+            <a class="sidebar-link @(IsActiveAction("Classes", "TransferStudents") ? "active" : "")" asp-controller="Classes" asp-action="TransferStudents">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                <span>Transfer Grades</span>
+            </a>
+            <div class="sidebar-section-label">Administration</div>
+            <a class="sidebar-link @(IsActive("Users") ? "active" : "")" asp-controller="Users" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/><path d="M19 8h3M20.5 6.5v3"/></svg>
+                <span>User Accounts</span>
+            </a>
+        }
+        else if (ViewContext.HttpContext.User.IsInRole("Teacher"))
+        {
+            <a class="sidebar-link @(IsActive("Dashboard") ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                <span>Dashboard</span>
+            </a>
+            <a class="sidebar-link @(IsActiveAction("TeacherPortal", "MySubjects") ? "active" : "")" asp-controller="TeacherPortal" asp-action="MySubjects">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                <span>My Subjects</span>
+            </a>
+            <a class="sidebar-link @(IsActiveAction("TeacherPortal", "Students") ? "active" : "")" asp-controller="TeacherPortal" asp-action="Students">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                <span>My Students</span>
+            </a>
+            <a class="sidebar-link @(IsActive("Attendance") ? "active" : "")" asp-controller="Attendance" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>
+                <span>Attendance</span>
+            </a>
+            <a class="sidebar-link @(IsActive("Assignments") ? "active" : "")" asp-controller="Assignments" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6M9 9h1"/></svg>
+                <span>Assignments</span>
+            </a>
+            <a class="sidebar-link @(IsActive("WeeklyChecklist") ? "active" : "")" asp-controller="WeeklyChecklist" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                <span>Weekly Checklist</span>
+            </a>
+            <a class="sidebar-link @(IsActive("Exams") ? "active" : "")" asp-controller="Exams" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6M9 9h1"/></svg>
+                <span>Exams</span>
+            </a>
+            <a class="sidebar-link @(IsActive("Messages") ? "active" : "")" asp-controller="Messages" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>Messages</span>
+                @if (unreadMessageCount > 0)
+                {
+                    <span class="badge bg-danger ms-auto">@unreadMessageCount</span>
+                }
+            </a>
+        }
+        else if (ViewContext.HttpContext.User.IsInRole("Student"))
+        {
+            <a class="sidebar-link @(IsActive("Dashboard") ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                <span>Dashboard</span>
+            </a>
+            <a class="sidebar-link @(IsActiveAction("StudentPortal", "MySubjects") ? "active" : "")" asp-controller="StudentPortal" asp-action="MySubjects">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                <span>My Subjects</span>
+            </a>
+            <a class="sidebar-link @(IsActiveAction("StudentPortal", "Assignments") ? "active" : "")" asp-controller="StudentPortal" asp-action="Assignments">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6M9 9h1"/></svg>
+                <span>Assignments</span>
+            </a>
+            <a class="sidebar-link @(IsActiveAction("StudentPortal", "Attendance") ? "active" : "")" asp-controller="StudentPortal" asp-action="Attendance">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>
+                <span>Attendance</span>
+            </a>
+            <a class="sidebar-link @(IsActiveAction("StudentPortal", "Exams") || IsActiveAction("StudentPortal", "TakeExam") || IsActiveAction("StudentPortal", "ExamResult") ? "active" : "")" asp-controller="StudentPortal" asp-action="Exams">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"/></svg>
+                <span>Exam Questions</span>
+            </a>
+            <a class="sidebar-link @(IsActiveAction("StudentPortal", "Profile") ? "active" : "")" asp-controller="StudentPortal" asp-action="Profile">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg>
+                <span>Profile</span>
+            </a>
+            <a class="sidebar-link @(IsActive("Messages") ? "active" : "")" asp-controller="Messages" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>Messages</span>
+                @if (unreadMessageCount > 0)
+                {
+                    <span class="badge bg-danger ms-auto">@unreadMessageCount</span>
+                }
+            </a>
+        }
+        else if (ViewContext.HttpContext.User.IsInRole("Parent"))
+        {
+            <a class="sidebar-link @(IsActive("Dashboard") ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                <span>Dashboard</span>
+            </a>
+            <a class="sidebar-link @(IsActive("ParentPortal") ? "active" : "")" asp-controller="ParentPortal" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span>My Children</span>
+            </a>
+            <a class="sidebar-link @(IsActive("Messages") ? "active" : "")" asp-controller="Messages" asp-action="Index">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>Messages</span>
+                @if (unreadMessageCount > 0)
+                {
+                    <span class="badge bg-danger ms-auto">@unreadMessageCount</span>
+                }
+            </a>
+        }
+    </nav>
+
+    <div class="sidebar-user">
+        <div class="sidebar-user-card">
+            <a class="sidebar-user-link" asp-controller="Settings" asp-action="Index" title="Settings">
+                <span class="sidebar-user-avatar">@sidebarUserInitials<span class="sidebar-user-status"></span></span>
+                <span class="sidebar-user-text">
+                    <span class="sidebar-user-name">@sidebarUserName</span>
+                    <span class="sidebar-user-role">@sidebarUserRoles</span>
+                </span>
+            </a>
+            <form method="post" asp-controller="Auth" asp-action="Logout" class="m-0">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="sidebar-user-logout" title="Sign out" aria-label="Sign out">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+                </button>
+            </form>
+        </div>
+    </div>
+</aside>

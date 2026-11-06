@@ -1,0 +1,104 @@
+@model SchoolManagement.Models.Student
+@{
+    ViewData["Title"] = Model.FullName;
+    var subjects = (List<string>)ViewBag.Subjects;
+    var submissions = (List<SchoolManagement.Models.AssignmentSubmission>)ViewBag.Submissions;
+    var attendance = (List<SchoolManagement.Models.AttendanceRecord>)ViewBag.RecentAttendance;
+    var averageGrade = (decimal?)ViewBag.AverageGrade;
+}
+
+<div class="mb-3">
+    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title">@Model.FullName</h1>
+    <p class="page-subtitle">@(Model.Class?.Name ?? "Unassigned class") &middot; @Model.AdmissionNumber</p>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <div class="stat-value">@subjects.Count</div>
+        <div class="stat-label">Subjects</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-violet">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <div class="stat-value">@ViewBag.AttendanceRate%</div>
+        <div class="stat-label">Attendance <span class="stat-sub">@ViewBag.PresentCount of @ViewBag.TotalAttendance</span></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-amber">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.2H22l-6 4.4 2.3 7.1L12 16.3 5.7 20.7 8 13.6l-6-4.4h7.6z"/></svg>
+        </div>
+        <div class="stat-value">@(averageGrade != null ? $"{averageGrade}%" : "—")</div>
+        <div class="stat-label">Average Grade</div>
+    </div>
+</div>
+
+<div class="panel-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Recent Assignments</h2>
+        </div>
+        <div class="panel-body">
+            @if (!submissions.Any())
+            {
+                <p class="empty-state">No assignments yet.</p>
+            }
+            else
+            {
+                <ul class="entity-list">
+                    @foreach (var s in submissions)
+                    {
+                        <li class="entity-list-item entity-list-item-static">
+                            <div>
+                                <div class="entity-title">@s.Assignment?.Title</div>
+                                <div class="entity-meta">@s.Assignment?.Subject?.Name &middot; Due @s.Assignment?.DueDate.ToShortDateString()@(s.Grade != null ? $" · Grade: {s.Grade}%" : "")</div>
+                                @if (!string.IsNullOrWhiteSpace(s.Assignment?.Description))
+                                {
+                                    <div class="entity-meta">@s.Assignment.Description</div>
+                                }
+                            </div>
+                            <span class="status-badge status-@s.Status.ToLower().Replace(" ", "-")">@s.Status</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Recent Attendance</h2>
+        </div>
+        <div class="panel-body">
+            @if (!attendance.Any())
+            {
+                <p class="empty-state">No attendance records yet.</p>
+            }
+            else
+            {
+                <ul class="entity-list">
+                    @foreach (var a in attendance)
+                    {
+                        <li class="entity-list-item entity-list-item-static">
+                            <div>
+                                <div class="entity-title">@a.AttendanceDate.ToShortDateString()</div>
+                                @if (!string.IsNullOrWhiteSpace(a.Remarks))
+                                {
+                                    <div class="entity-meta">@a.Remarks</div>
+                                }
+                            </div>
+                            <span class="status-badge status-@a.Status.ToLower().Replace(" ", "-")">@a.Status</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,252 @@
+@model SchoolManagement.Models.DashboardViewModel
+@inject SchoolManagement.Services.ITenantProvider TenantProvider
+
+@{
+    ViewData["Title"] = "Dashboard";
+
+    int Percent(int done, int total) => total > 0 ? (int)Math.Round(done * 100m / total) : 0;
+    var attendancePct = (int)Math.Round(Model.AttendancePercentage);
+    var assignmentsDonePct = Percent(Model.TotalAssignments - Model.PendingAssignments, Model.TotalAssignments);
+    var checklistDonePct = Percent(Model.TotalWeeklyChecklists - Model.PendingWeeklyChecklists, Model.TotalWeeklyChecklists);
+    var gradePct = Model.AverageGrade.HasValue ? (int)Math.Round(Math.Clamp(Model.AverageGrade.Value, 0, 100)) : 0;
+    string Initials(string first, string last) =>
+        $"{(string.IsNullOrEmpty(first) ? "" : first[..1])}{(string.IsNullOrEmpty(last) ? "" : last[..1])}".ToUpper();
+}
+
+<div class="page-header">
+    <div class="page-eyebrow">School Management</div>
+    <h1 class="page-title">School Operations Center</h1>
+    <p class="page-subtitle">@(TenantProvider.SchoolName ?? "Your school") &middot; overview of today's school activity</p>
+</div>
+
+<div class="bento-grid">
+    <!-- Executive overview: attendance score + key metrics -->
+    <div class="panel hero-card bento-8">
+        <div class="score-panel">
+            <span class="score-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>
+            </span>
+            <div class="score-value">@attendancePct<small>%</small></div>
+            <div class="score-label">Attendance Today</div>
+            <div class="score-bar"><span style="width:@attendancePct%"></span></div>
+            <div class="score-note">@Model.PresentToday of @Model.TotalAttendanceRecordsToday marked present</div>
+            <div class="score-mini">
+                <div><strong>@Model.TotalStudents</strong><span>Students</span></div>
+                <div><strong>@Model.TotalTeachers</strong><span>Teachers</span></div>
+                <div><strong>@(Model.AverageGrade != null ? $"{Model.AverageGrade:0.#}%" : "—")</strong><span>Avg grade</span></div>
+            </div>
+        </div>
+        <div class="hero-body">
+            <h2 class="hero-title">Executive School Overview</h2>
+            <p class="hero-subtitle">Students, staff, coursework and attendance at a glance</p>
+            <div class="metric-grid">
+                <a class="metric-tile" asp-controller="Students" asp-action="Index">
+                    <div class="metric-head">
+                        <span class="metric-label">Students</span>
+                        <span class="metric-chip"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span>
+                    </div>
+                    <div class="metric-value">@Model.TotalStudents</div>
+                    <div class="metric-note">Enrolled students</div>
+                </a>
+                <a class="metric-tile is-info" asp-controller="Teachers" asp-action="Index">
+                    <div class="metric-head">
+                        <span class="metric-label">Teachers</span>
+                        <span class="metric-chip"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                    </div>
+                    <div class="metric-value">@Model.TotalTeachers</div>
+                    <div class="metric-note">Teaching staff</div>
+                </a>
+                <a class="metric-tile @(attendancePct >= 75 ? "is-success" : "is-warning")" asp-controller="Attendance" asp-action="Index">
+                    <div class="metric-head">
+                        <span class="metric-label">Attendance Today</span>
+                        <span class="metric-chip"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+                    </div>
+                    <div class="metric-value">@attendancePct%</div>
+                    <div class="metric-bar"><span style="width:@attendancePct%"></span></div>
+                    <div class="metric-note">@Model.PresentToday of @Model.TotalAttendanceRecordsToday present</div>
+                </a>
+                <a class="metric-tile @(Model.PendingAssignments > 0 ? "is-warning" : "is-success")" asp-controller="Assignments" asp-action="Index">
+                    <div class="metric-head">
+                        <span class="metric-label">Assignments</span>
+                        <span class="metric-chip"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>
+                    </div>
+                    <div class="metric-value">@Model.TotalAssignments</div>
+                    <div class="metric-bar"><span style="width:@assignmentsDonePct%"></span></div>
+                    <div class="metric-note">@Model.PendingAssignments pending</div>
+                </a>
+                <a class="metric-tile @(Model.PendingWeeklyChecklists > 0 ? "is-warning" : "is-success")" asp-controller="WeeklyChecklist" asp-action="Index">
+                    <div class="metric-head">
+                        <span class="metric-label">Weekly Checklist</span>
+                        <span class="metric-chip"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+                    </div>
+                    <div class="metric-value">@Model.TotalWeeklyChecklists</div>
+                    <div class="metric-bar"><span style="width:@checklistDonePct%"></span></div>
+                    <div class="metric-note">@Model.PendingWeeklyChecklists pending</div>
+                </a>
+                <a class="metric-tile is-success" asp-controller="Reports" asp-action="Index">
+                    <div class="metric-head">
+                        <span class="metric-label">Average Grade</span>
+                        <span class="metric-chip"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.2H22l-6 4.4 2.3 7.1L12 16.3 5.7 20.7 8 13.6l-6-4.4h7.6z"/></svg></span>
+                    </div>
+                    <div class="metric-value">@(Model.AverageGrade != null ? $"{Model.AverageGrade}%" : "—")</div>
+                    <div class="metric-bar"><span style="width:@gradePct%"></span></div>
+                    <div class="metric-note">@Model.SubmissionsToGrade awaiting grading</div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick actions, styled as the template's intelligence list -->
+    <div class="panel insight-card bento-4">
+        <div class="insight-head">
+            <span class="insight-chip">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </span>
+            <h2 class="panel-title">Quick Actions</h2>
+        </div>
+        <p class="panel-subtitle">Jump straight into daily school tasks</p>
+        <ul class="insight-list">
+            <li>
+                <a asp-controller="Students" asp-action="Index">
+                    <span class="insight-chip"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span>
+                    <span><span class="insight-title">Manage Students</span><span class="insight-meta">Enrol, edit and transfer students</span></span>
+                    <span class="status-badge status-submitted insight-count">@Model.TotalStudents</span>
+                </a>
+            </li>
+            <li>
+                <a asp-controller="Teachers" asp-action="Index">
+                    <span class="insight-chip is-info"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>
+                    <span><span class="insight-title">Manage Teachers</span><span class="insight-meta">Staff, subjects and classes</span></span>
+                    <span class="status-badge status-submitted insight-count">@Model.TotalTeachers</span>
+                </a>
+            </li>
+            <li>
+                <a asp-controller="Attendance" asp-action="Index">
+                    <span class="insight-chip is-success"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+                    <span><span class="insight-title">Manage Attendance</span><span class="insight-meta">Record and review daily attendance</span></span>
+                </a>
+            </li>
+            <li>
+                <a asp-controller="Assignments" asp-action="Index">
+                    <span class="insight-chip is-warning"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>
+                    <span><span class="insight-title">Manage Assignments</span><span class="insight-meta">Coursework and grading</span></span>
+                    <span class="status-badge status-pending insight-count">@Model.PendingAssignments pending</span>
+                </a>
+            </li>
+            <li>
+                <a asp-controller="Subjects" asp-action="Index">
+                    <span class="insight-chip is-info"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+                    <span><span class="insight-title">Manage Subjects</span><span class="insight-meta">Curriculum and assignments</span></span>
+                </a>
+            </li>
+            <li>
+                <a asp-controller="WeeklyChecklist" asp-action="Index">
+                    <span class="insight-chip is-success"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+                    <span><span class="insight-title">Manage Weekly Checklist</span><span class="insight-meta">Weekly tasks and deadlines</span></span>
+                    <span class="status-badge status-pending insight-count">@Model.PendingWeeklyChecklists pending</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<div class="bento-grid">
+    <div class="panel bento-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">Pending Assignments</h2>
+                <p class="panel-subtitle">Most recent coursework</p>
+            </div>
+            <a asp-controller="Assignments" asp-action="Index" class="panel-link">View all</a>
+        </div>
+        <div class="panel-body">
+            @if (!Model.RecentAssignments.Any())
+            {
+                <p class="empty-state">No assignments yet.</p>
+            }
+            else
+            {
+                <ul class="entity-list">
+                    @foreach (var assignment in Model.RecentAssignments)
+                    {
+                        <li class="entity-list-item">
+                            <a asp-controller="Assignments" asp-action="Edit" asp-route-id="@assignment.Id">
+                                <div>
+                                    <div class="entity-title">@assignment.Title</div>
+                                    <div class="entity-meta">Due @assignment.DueDate.ToShortDateString()</div>
+                                </div>
+                                <span class="status-badge status-@assignment.Status.ToLower().Replace(" ", "-")">@assignment.Status</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+
+    <div class="panel bento-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">Upcoming Weekly Checklist</h2>
+                <p class="panel-subtitle">Tasks due soon</p>
+            </div>
+            <a asp-controller="WeeklyChecklist" asp-action="Index" class="panel-link">View all</a>
+        </div>
+        <div class="panel-body">
+            @if (!Model.UpcomingWeeklyChecklists.Any())
+            {
+                <p class="empty-state">Nothing scheduled.</p>
+            }
+            else
+            {
+                <ul class="entity-list">
+                    @foreach (var item in Model.UpcomingWeeklyChecklists)
+                    {
+                        <li class="entity-list-item">
+                            <a asp-controller="WeeklyChecklist" asp-action="Edit" asp-route-id="@item.Id">
+                                <div>
+                                    <div class="entity-title">@item.Title</div>
+                                    <div class="entity-meta">Due @item.DueDate.ToShortDateString()</div>
+                                </div>
+                                <span class="status-badge status-@item.Status.ToLower().Replace(" ", "-")">@item.Status</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+
+    <div class="panel bento-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">Recent Student Enrollments</h2>
+                <p class="panel-subtitle">Newest admissions</p>
+            </div>
+            <a asp-controller="Students" asp-action="Index" class="panel-link">View all</a>
+        </div>
+        <div class="panel-body">
+            @if (!Model.RecentStudents.Any())
+            {
+                <p class="empty-state">No students enrolled yet.</p>
+            }
+            else
+            {
+                <ul class="entity-list">
+                    @foreach (var student in Model.RecentStudents)
+                    {
+                        <li class="entity-list-item entity-list-item-static">
+                            <div class="entity-lead">
+                                <span class="avatar-initials">@Initials(student.FirstName, student.LastName)</span>
+                                <div>
+                                    <div class="entity-title">@student.FirstName @student.LastName</div>
+                                    <div class="entity-meta">Enrolled @student.EnrollmentDate.ToShortDateString()</div>
+                                </div>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>

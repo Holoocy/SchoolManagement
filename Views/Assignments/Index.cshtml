@@ -1,0 +1,68 @@
+@model IEnumerable<SchoolManagement.Models.Assignment>
+
+@{
+    ViewData["Title"] = "Assignments";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <button type="button" class="btn btn-outline-secondary btn-sm mb-2" onclick="history.back()">Back</button>
+        <h2 class="mb-0">Assignments</h2>
+    </div>
+    <a class="btn btn-primary" asp-action="Create">Create Assignment</a>
+</div>
+
+@if (TempData["AssignmentSuccess"] != null)
+{
+    <div class="alert alert-success">@TempData["AssignmentSuccess"]</div>
+}
+@if (TempData["AssignmentError"] != null)
+{
+    <div class="alert alert-warning">@TempData["AssignmentError"]</div>
+}
+
+<table class="table table-striped table-bordered">
+    <thead class="table-dark">
+        <tr>
+            <th>Subject</th>
+            <th>Title</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            string displayStatus;
+            if (!item.Submissions.Any())
+            {
+                displayStatus = "Not Assigned";
+            }
+            else if (item.Submissions.All(s => s.Status == "Graded"))
+            {
+                displayStatus = "Graded";
+            }
+            else if (item.Submissions.Any(s => s.Status == "Submitted" || s.Status == "Graded"))
+            {
+                displayStatus = "Submitted";
+            }
+            else
+            {
+                displayStatus = "Assigned";
+            }
+            <tr>
+                <td>@(item.Subject?.Name ?? "—")</td>
+                <td>@item.Title</td>
+                <td>@item.DueDate.ToShortDateString()</td>
+                <td><span class="status-badge status-@displayStatus.ToLower().Replace(" ", "-")">@displayStatus</span></td>
+                <td class="text-nowrap">
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="AssignStudents" asp-route-id="@item.Id">Assign Students</a>
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Grade" asp-route-id="@item.Id">Grade</a>
+                    <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

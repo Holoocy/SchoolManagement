@@ -1,0 +1,40 @@
+@model SchoolManagement.Models.MessageReplyViewModel
+
+@{
+    ViewData["Title"] = "Reply";
+}
+
+<button type="button" class="btn btn-outline-secondary btn-sm mb-2" onclick="history.back()">Back</button>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h6 class="text-muted mb-1">Original message from @Model.ToName</h6>
+        <p class="fw-bold mb-1">@Model.OriginalSubject</p>
+        <p style="white-space: pre-wrap;">@Model.OriginalBody</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h4 class="card-title mb-3">Reply to @Model.ToName</h4>
+
+        <form method="post" asp-action="Reply">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+            <input type="hidden" asp-for="OriginalMessageRecipientId" />
+
+            <div class="mb-3">
+                <label asp-for="Subject" class="form-label"></label>
+                <input asp-for="Subject" class="form-control" />
+                <span asp-validation-for="Subject" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Body" class="form-label">Message</label>
+                <textarea asp-for="Body" class="form-control" rows="6"></textarea>
+                <span asp-validation-for="Body" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Send Reply</button>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,24 @@
+# Build output
+bin/
+obj/
+publish_output/
+*.pdb
+
+# IDE / local tooling
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+.claude/
+
+# User-uploaded files (student photos, logos, checklist attachments) — runtime data, not source
+wwwroot/uploads/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Local environment overrides
+.env
+*.env

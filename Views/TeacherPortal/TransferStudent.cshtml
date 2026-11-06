@@ -1,0 +1,32 @@
+@model SchoolManagement.Models.Student
+
+@{
+    ViewData["Title"] = "Transfer Student";
+}
+
+<div class="mb-3">
+    <a asp-action="Students" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<h2>Transfer Student</h2>
+<p class="text-muted">Move <strong>@Model.FullName</strong> (@Model.AdmissionNumber) to another grade assigned to you.</p>
+
+<form asp-action="TransferStudent" method="post" style="max-width: 420px;">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <div class="mb-3">
+        <label class="form-label">Current Grade</label>
+        <input type="text" class="form-control" value="@(Model.Class?.Name ?? "Unassigned")" disabled />
+    </div>
+
+    <div class="mb-3">
+        <label for="newClassId" class="form-label">New Grade</label>
+        <select name="newClassId" id="newClassId" class="form-select" asp-items="ViewBag.Classes">
+            <option value="">-- Select Grade --</option>
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Transfer</button>
+    <a asp-action="Students" class="btn btn-secondary">Cancel</a>
+</form>

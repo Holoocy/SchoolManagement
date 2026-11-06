@@ -1,0 +1,43 @@
+@model SchoolManagement.Models.Exam
+
+@{
+    ViewData["Title"] = "Create Exam";
+}
+
+<div class="mb-3">
+    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<h2>Create Exam</h2>
+
+<form asp-action="Create">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label asp-for="Title" class="form-label"></label>
+            <input asp-for="Title" class="form-control" />
+            <span asp-validation-for="Title" class="text-danger"></span>
+        </div>
+        <div class="col-md-6"></div>
+        <div class="col-md-6">
+            <label asp-for="SubjectId" class="form-label">Subject</label>
+            <select asp-for="SubjectId" class="form-select" asp-items="ViewBag.Subjects">
+                <option value="">-- Select Subject --</option>
+            </select>
+            <span asp-validation-for="SubjectId" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="ClassId" class="form-label">Grade</label>
+            <select asp-for="ClassId" class="form-select" asp-items="ViewBag.Classes">
+                <option value="">-- Select Grade --</option>
+            </select>
+            <span asp-validation-for="ClassId" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary">Create and Add Questions</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
