@@ -1,112 +1,247 @@
 @model SchoolManagement.Models.SettingsViewModel
+@inject SchoolManagement.Services.ITenantProvider TenantProvider
 
 @{
     ViewData["Title"] = "Settings";
+    var initial = string.IsNullOrWhiteSpace(Model.FullName) ? "U" : Model.FullName.Trim()[0].ToString().ToUpperInvariant();
 }
 
-<div class="page-header">
-    <h1 class="page-title">Settings</h1>
-    <p class="page-subtitle">Manage your profile and account security</p>
-</div>
-
-@if (TempData["SettingsSuccess"] != null)
-{
-    <div class="alert alert-success">@TempData["SettingsSuccess"]</div>
-}
-
-<div class="panel-grid">
-    <div class="panel">
-        <div class="panel-header">
-            <h2 class="panel-title">Profile</h2>
+<div class="settings-page">
+    <header class="settings-hero">
+        <div>
+            <p class="settings-eyebrow">Account and workspace</p>
+            <h1>Settings</h1>
+            <p>Manage your personal access and the details that shape your school portal.</p>
         </div>
-        <div class="panel-body">
-            <ul class="entity-list">
-                <li class="entity-list-item entity-list-item-static">
-                    <div class="entity-title">Full Name</div>
-                    <div class="entity-meta">@Model.FullName</div>
-                </li>
-                <li class="entity-list-item entity-list-item-static">
-                    <div class="entity-title">Username</div>
-                    <div class="entity-meta">@Model.Username</div>
-                </li>
-                <li class="entity-list-item entity-list-item-static">
-                    <div class="entity-title">Email</div>
-                    <div class="entity-meta">@Model.Email</div>
-                </li>
-                <li class="entity-list-item entity-list-item-static">
-                    <div class="entity-title">Roles</div>
-                    <div class="entity-meta">@string.Join(", ", Model.Roles)</div>
-                </li>
-                <li class="entity-list-item entity-list-item-static">
-                    <div class="entity-title">Member Since</div>
-                    <div class="entity-meta">@Model.CreatedAt.ToShortDateString()</div>
-                </li>
-            </ul>
-        </div>
-    </div>
+        <nav class="settings-section-nav" aria-label="Settings sections">
+            <a href="#profile">Profile</a>
+            <a href="#security">Security</a>
+            @if (User.IsInRole("Admin"))
+            {
+                <a href="#branding">Branding</a>
+            }
+        </nav>
+    </header>
 
-    <div class="panel">
-        <div class="panel-header">
-            <h2 class="panel-title">Change Password</h2>
-        </div>
-        <div class="panel-body">
-            <form method="post" asp-controller="Settings" asp-action="ChangePassword" class="p-3">
-                @Html.AntiForgeryToken()
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
-
-                <div class="mb-3">
-                    <label asp-for="ChangePassword.CurrentPassword" class="form-label"></label>
-                    <input asp-for="ChangePassword.CurrentPassword" class="form-control" />
-                    <span asp-validation-for="ChangePassword.CurrentPassword" class="text-danger"></span>
-                </div>
-                <div class="mb-3">
-                    <label asp-for="ChangePassword.NewPassword" class="form-label"></label>
-                    <input asp-for="ChangePassword.NewPassword" class="form-control" />
-                    <span asp-validation-for="ChangePassword.NewPassword" class="text-danger"></span>
-                </div>
-                <div class="mb-3">
-                    <label asp-for="ChangePassword.ConfirmPassword" class="form-label"></label>
-                    <input asp-for="ChangePassword.ConfirmPassword" class="form-control" />
-                    <span asp-validation-for="ChangePassword.ConfirmPassword" class="text-danger"></span>
-                </div>
-
-                <button type="submit" class="btn btn-primary">Update Password</button>
-            </form>
-        </div>
-    </div>
-
-    @if (User.IsInRole("Admin"))
+    @if (TempData["SettingsSuccess"] != null)
     {
-        <div class="panel">
-            <div class="panel-header">
-                <h2 class="panel-title">School Branding</h2>
-            </div>
-            <div class="panel-body">
-                <form method="post" asp-controller="Settings" asp-action="UpdateBranding" enctype="multipart/form-data" class="p-3">
-                    @Html.AntiForgeryToken()
-
-                    @if (!string.IsNullOrEmpty(Model.Branding.CurrentLogoPath))
-                    {
-                        <div class="mb-3">
-                            <label class="form-label d-block">Current Logo</label>
-                            <img src="@Model.Branding.CurrentLogoPath" alt="Current logo" style="width:64px;height:64px;object-fit:cover;border-radius:8px;" />
-                        </div>
-                    }
-
-                    <div class="mb-3">
-                        <label asp-for="Branding.LogoFile" class="form-label">@(string.IsNullOrEmpty(Model.Branding.CurrentLogoPath) ? "Upload a Logo" : "Replace Logo")</label>
-                        <input asp-for="Branding.LogoFile" type="file" accept="image/*" class="form-control" />
-                        <div class="form-text">Shown in the sidebar beside your school name. Leave blank to keep the current logo.</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="Branding.ThemeColor" class="form-label">Theme Color</label>
-                        <input asp-for="Branding.ThemeColor" type="color" class="form-control form-control-color" />
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">Save Branding</button>
-                </form>
-            </div>
+        <div class="settings-success" role="status">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" /><path d="m8 12 2.5 2.5L16 9" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <span>@TempData["SettingsSuccess"]</span>
         </div>
     }
+
+    <div class="settings-layout">
+        <section class="settings-card settings-profile-card" id="profile" aria-labelledby="profile-heading">
+            <div class="settings-card-heading">
+                <div>
+                    <p class="settings-card-kicker">Your profile</p>
+                    <h2 id="profile-heading">Personal details</h2>
+                </div>
+                <span class="settings-readonly">View only</span>
+            </div>
+
+            <div class="settings-identity">
+                <span class="settings-avatar">@initial</span>
+                <div>
+                    <h3>@Model.FullName</h3>
+                    <p>@@@Model.Username</p>
+                    <div class="settings-role-list">
+                        @foreach (var role in Model.Roles)
+                        {
+                            <span>@role</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <dl class="settings-details-list">
+                <div>
+                    <dt>Username</dt>
+                    <dd>@Model.Username</dd>
+                </div>
+                <div>
+                    <dt>Email address</dt>
+                    <dd>@Model.Email</dd>
+                </div>
+                <div>
+                    <dt>Member since</dt>
+                    <dd>@Model.CreatedAt.ToShortDateString()</dd>
+                </div>
+            </dl>
+            <p class="settings-card-note">Need to update your profile details? Please contact your school administrator.</p>
+        </section>
+
+        <section class="settings-card settings-security-card" id="security" aria-labelledby="security-heading">
+            <div class="settings-card-heading">
+                <div>
+                    <p class="settings-card-kicker">Security</p>
+                    <h2 id="security-heading">Password and access</h2>
+                </div>
+                <span class="settings-heading-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="10" width="14" height="10" rx="2" /><path d="M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10" stroke-linecap="round" /></svg>
+                </span>
+            </div>
+            <p class="settings-card-description">Choose a strong password that you do not use anywhere else.</p>
+
+            <form method="post" asp-controller="Settings" asp-action="ChangePassword" class="settings-form" id="change-password-form">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="settings-error-summary" id="password-error-summary" role="alert" tabindex="-1"></div>
+
+                <div class="settings-field">
+                    <label asp-for="ChangePassword.CurrentPassword" class="form-label"></label>
+                    <div class="settings-password-wrap">
+                        <input asp-for="ChangePassword.CurrentPassword" class="form-control" autocomplete="current-password" />
+                        <button type="button" class="settings-password-toggle" data-password-target="ChangePassword_CurrentPassword" aria-label="Show current password">
+                            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.5" /></svg>
+                        </button>
+                    </div>
+                    <span asp-validation-for="ChangePassword.CurrentPassword" class="field-validation-error"></span>
+                </div>
+
+                <div class="settings-form-grid">
+                    <div class="settings-field">
+                        <label asp-for="ChangePassword.NewPassword" class="form-label"></label>
+                        <div class="settings-password-wrap">
+                            <input asp-for="ChangePassword.NewPassword" class="form-control" autocomplete="new-password" />
+                            <button type="button" class="settings-password-toggle" data-password-target="ChangePassword_NewPassword" aria-label="Show new password">
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.5" /></svg>
+                            </button>
+                        </div>
+                        <span asp-validation-for="ChangePassword.NewPassword" class="field-validation-error"></span>
+                    </div>
+                    <div class="settings-field">
+                        <label asp-for="ChangePassword.ConfirmPassword" class="form-label"></label>
+                        <div class="settings-password-wrap">
+                            <input asp-for="ChangePassword.ConfirmPassword" class="form-control" autocomplete="new-password" />
+                            <button type="button" class="settings-password-toggle" data-password-target="ChangePassword_ConfirmPassword" aria-label="Show confirm password">
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.5" /></svg>
+                            </button>
+                        </div>
+                        <span asp-validation-for="ChangePassword.ConfirmPassword" class="field-validation-error"></span>
+                    </div>
+                </div>
+
+                <div class="settings-form-actions">
+                    <span>At least 6 characters</span>
+                    <button type="submit" class="btn btn-primary settings-submit" data-password-submit><span data-password-submit-label>Update password</span></button>
+                </div>
+            </form>
+        </section>
+
+        @if (User.IsInRole("Admin"))
+        {
+            <section class="settings-card settings-branding-card" id="branding" aria-labelledby="branding-heading">
+                <div class="settings-card-heading">
+                    <div>
+                        <p class="settings-card-kicker">School branding</p>
+                        <h2 id="branding-heading">Make the portal yours</h2>
+                    </div>
+                    <span class="settings-heading-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" stroke-linejoin="round" /></svg>
+                    </span>
+                </div>
+                <p class="settings-card-description">Your school logo and color appear across the portal for every member of your community.</p>
+
+                <form method="post" asp-controller="Settings" asp-action="UpdateBranding" enctype="multipart/form-data" class="settings-branding-form" id="branding-form">
+                    @Html.AntiForgeryToken()
+                    <div class="settings-brand-preview">
+                        <span class="settings-brand-logo" data-brand-logo>
+                            @if (!string.IsNullOrEmpty(Model.Branding.CurrentLogoPath))
+                            {
+                                <img src="@Model.Branding.CurrentLogoPath" alt="Current school logo" />
+                            }
+                            else
+                            {
+                                <span data-brand-initial>@(TenantProvider.SchoolName?.FirstOrDefault().ToString().ToUpperInvariant() ?? "S")</span>
+                            }
+                        </span>
+                        <span class="settings-brand-copy"><small>School portal</small><strong>@(TenantProvider.SchoolName ?? "Your school")</strong></span>
+                        <span class="settings-brand-accent" data-brand-accent aria-hidden="true"></span>
+                    </div>
+
+                    <div class="settings-branding-grid">
+                        <div class="settings-field">
+                            <label asp-for="Branding.LogoFile" class="form-label">@(string.IsNullOrEmpty(Model.Branding.CurrentLogoPath) ? "Upload a logo" : "Replace your logo")</label>
+                            <input asp-for="Branding.LogoFile" type="file" accept="image/*" class="settings-logo-input" data-logo-input />
+                            <label for="Branding_LogoFile" class="settings-logo-dropzone">
+                                <span class="settings-upload-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4M7.5 8.5 12 4l4.5 4.5M5 20h14" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                </span>
+                                <span><strong data-logo-label>Choose a logo</strong><small>PNG or JPG. Leave blank to keep the current logo.</small></span>
+                            </label>
+                        </div>
+
+                        <div class="settings-field">
+                            <label asp-for="Branding.ThemeColor" class="form-label">School color</label>
+                            <div class="settings-color-control">
+                                <input asp-for="Branding.ThemeColor" type="color" title="Choose your school's theme color" data-theme-color />
+                                <span class="settings-color-swatch" data-color-swatch aria-hidden="true"></span>
+                                <span><strong data-color-value>@Model.Branding.ThemeColor</strong><small>Portal accent</small></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-form-actions">
+                        <span>Changes apply throughout the school portal.</span>
+                        <button type="submit" class="btn btn-primary settings-submit" data-branding-submit><span data-branding-submit-label>Save branding</span></button>
+                    </div>
+                </form>
+            </section>
+        }
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            document.querySelectorAll('[data-password-target]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    var field = document.getElementById(this.dataset.passwordTarget);
+                    var isVisible = field.type === 'text';
+                    field.type = isVisible ? 'password' : 'text';
+                    this.setAttribute('aria-label', isVisible ? `Show ${this.getAttribute('aria-label').replace('Hide ', '').toLowerCase()}` : this.getAttribute('aria-label').replace('Show ', 'Hide '));
+                });
+            });
+
+            var passwordForm = document.getElementById('change-password-form');
+            passwordForm?.addEventListener('submit', function () {
+                if (!passwordForm.checkValidity()) return;
+                var button = document.querySelector('[data-password-submit]');
+                button.disabled = true;
+                button.querySelector('[data-password-submit-label]').textContent = 'Updating password…';
+            });
+
+            var brandingForm = document.getElementById('branding-form');
+            brandingForm?.addEventListener('submit', function () {
+                var button = document.querySelector('[data-branding-submit]');
+                button.disabled = true;
+                button.querySelector('[data-branding-submit-label]').textContent = 'Saving branding…';
+            });
+
+            var logoInput = document.querySelector('[data-logo-input]');
+            logoInput?.addEventListener('change', function () {
+                if (!this.files || !this.files[0]) return;
+                var brandLogo = document.querySelector('[data-brand-logo]');
+                brandLogo.innerHTML = '';
+                var image = document.createElement('img');
+                image.src = URL.createObjectURL(this.files[0]);
+                image.alt = 'Selected school logo preview';
+                brandLogo.appendChild(image);
+                document.querySelector('[data-logo-label]').textContent = 'Logo selected';
+            });
+
+            var colorInput = document.querySelector('[data-theme-color]');
+            colorInput?.addEventListener('input', function () {
+                document.querySelector('[data-color-value]').textContent = this.value;
+                document.querySelector('[data-color-swatch]').style.backgroundColor = this.value;
+                document.querySelector('[data-brand-accent]').style.backgroundColor = this.value;
+            });
+
+            var invalidField = document.querySelector('#change-password-form .input-validation-error');
+            if (invalidField) {
+                invalidField.focus();
+            }
+        })();
+    </script>
+}
