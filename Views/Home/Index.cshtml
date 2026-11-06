@@ -1,24 +1,62 @@
 @{
-    ViewData["Title"] = "SchoolManagement";
+    ViewData["Title"] = "School Portal";
 }
 
-<div class="container mt-5">
-    <div class="row justify-content-center text-center">
-        <div class="col-md-8">
-            <h1 class="display-5 fw-bold mb-3">SchoolManagement</h1>
-            <p class="text-muted mb-4">A dedicated home for your school &mdash; students, teachers, subjects, attendance, assignments and grades, all in one place.</p>
+<div class="home-landing">
+    <header class="home-navigation">
+        <a class="home-brand" href="/" aria-label="School Portal home">
+            <span class="home-brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 3.5 27 9.3 16 15.1 5 9.3 16 3.5Z" fill="currentColor" />
+                    <path d="M8.5 12.2V19c0 2.4 3.35 4.35 7.5 4.35s7.5-1.95 7.5-4.35v-6.8L16 16.15 8.5 12.2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                </svg>
+            </span>
+            <span>School Portal</span>
+        </a>
+        <a asp-controller="Onboard" asp-action="Index" class="home-nav-action">Set up your school <span aria-hidden="true">→</span></a>
+    </header>
 
-            <div class="d-flex justify-content-center gap-3 mb-5">
-                <a asp-controller="Onboard" asp-action="Index" class="btn btn-primary btn-lg">Onboard Your School</a>
+    <main class="home-hero">
+        <section class="home-hero-copy" aria-labelledby="home-heading">
+            <p class="home-eyebrow"><span aria-hidden="true"></span> The connected school experience</p>
+            <h1 id="home-heading">The place where your school stays in step.</h1>
+            <p class="home-hero-description">A thoughtful home for learning, communication, and the everyday work that keeps a school moving forward.</p>
+            <div class="home-hero-actions">
+                <a asp-controller="Onboard" asp-action="Index" class="btn btn-primary home-primary-action">Create your school portal <span aria-hidden="true">→</span></a>
+                <a href="#school-address" class="home-secondary-action">Already set up? <span>Find your portal</span></a>
             </div>
+            <p class="home-hero-reassurance"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4.5 6v5c0 4.65 3.15 8.7 7.5 10 4.35-1.3 7.5-5.35 7.5-10V6L12 3Z" /><path d="m9 12 2 2 4-4" stroke-linecap="round" stroke-linejoin="round" /></svg> Secure by design. Built around your school.</p>
+        </section>
 
-            <div class="card mx-auto" style="max-width: 480px;">
-                <div class="card-body">
-                    <h5 class="card-title">Already onboarded?</h5>
-                    <p class="text-muted small">Visit your school's own address to sign in &mdash; it looks like:</p>
-                    <code>yourapp.com/your-school-slug</code>
+        <section class="home-portal-preview" aria-label="School portal preview">
+            <div class="home-preview-glow" aria-hidden="true"></div>
+            <div class="home-preview-window">
+                <div class="home-preview-topbar">
+                    <div class="home-preview-school"><span class="home-preview-school-mark">H</span><span><strong>Heavens Gate</strong><small>Academy</small></span></div>
+                    <span class="home-preview-avatar">A</span>
+                </div>
+                <div class="home-preview-content">
+                    <div class="home-preview-welcome"><span><small>Thursday, 6 November</small><strong>Good morning, Amanda.</strong></span><span class="home-preview-spark" aria-hidden="true">✦</span></div>
+                    <div class="home-preview-stats">
+                        <div><span class="home-stat-icon home-stat-green" aria-hidden="true">✓</span><span><small>Attendance</small><strong>96.4%</strong></span></div>
+                        <div><span class="home-stat-icon home-stat-blue" aria-hidden="true">↗</span><span><small>Assignments</small><strong>12</strong></span></div>
+                    </div>
+                    <div class="home-preview-card">
+                        <div class="home-preview-card-heading"><span><strong>Today’s overview</strong><small>Thursday, 6 November</small></span><span>•••</span></div>
+                        <div class="home-preview-item"><span class="home-preview-item-icon green" aria-hidden="true">✓</span><span><strong>Attendance marked</strong><small>Year 10 · 28 students</small></span><time>09:12</time></div>
+                        <div class="home-preview-item"><span class="home-preview-item-icon blue" aria-hidden="true">✦</span><span><strong>New assignment submitted</strong><small>Mathematics · Year 9</small></span><time>10:45</time></div>
+                    </div>
                 </div>
             </div>
+            <div class="home-preview-note"><span class="home-note-check" aria-hidden="true">✓</span> Every detail, working together.</div>
+        </section>
+    </main>
+
+    <section class="home-address-section" id="school-address" aria-labelledby="school-address-heading">
+        <div>
+            <p class="home-eyebrow">Returning to your portal?</p>
+            <h2 id="school-address-heading">Use your school’s unique address to sign in.</h2>
         </div>
-    </div>
+        <div class="home-address-example"><span aria-hidden="true">↗</span><code>your-domain.com/your-school</code></div>
+    </section>
 </div>

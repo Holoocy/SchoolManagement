@@ -1,24 +1,17 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using SchoolManagement.Data;
 using SchoolManagement.Services;
-
-// This app only ever deals in plain calendar dates/times for a single school (no
-// cross-timezone requirements), but Npgsql's modern default strictly enforces an
-// exact DateTime.Kind match per column type (Utc-only for "timestamptz", Unspecified-only
-// for "timestamp"). SQL Server never checked Kind at all, so the codebase mixes
-// DateTime.UtcNow, DateTime.Today and form-bound (Kind=Unspecified) values freely.
-// This switch restores Npgsql's pre-6.0 lenient behavior so any Kind is accepted.
-AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Host=localhost;Database=SchoolManagementDb;Username=postgres;Password=postgres";
+    ?? "Server=localhost;Database=SchoolManagementDb;Trusted_Connection=True;TrustServerCertificate=True";
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseSqlServer(connectionString));
 
 builder.Services.AddScoped<ITenantProvider, TenantProvider>();
 
@@ -28,6 +21,8 @@ builder.Services.AddAuthentication("CookieAuth")
         options.LoginPath = "/Auth/Login";
         options.LogoutPath = "/Auth/Logout";
         options.AccessDeniedPath = "/Auth/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.SlidingExpiration = true;
 
         // Every controller lives under a /{schoolSlug}/... prefix, so authentication
         // redirects must carry that prefix forward instead of using a fixed path.
@@ -35,7 +30,8 @@ builder.Services.AddAuthentication("CookieAuth")
         {
             var slug = context.Request.RouteValues.TryGetValue("schoolSlug", out var s) ? s?.ToString() : null;
             var loginUrl = string.IsNullOrEmpty(slug) ? "/Auth/Login" : $"/{slug}/Auth/Login";
-            context.Response.Redirect(loginUrl + context.Request.QueryString);
+            var returnUrl = context.Request.PathBase + context.Request.Path + context.Request.QueryString;
+            context.Response.Redirect(QueryHelpers.AddQueryString(loginUrl, "returnUrl", returnUrl));
             return Task.CompletedTask;
         };
         options.Events.OnRedirectToAccessDenied = context =>

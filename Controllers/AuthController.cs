@@ -23,30 +23,31 @@ public class AuthController : Controller
     }
 
     [HttpGet]
-    public IActionResult Login()
+    public IActionResult Login(string? returnUrl)
     {
         if (User.Identity?.IsAuthenticated ?? false)
-            return RedirectToAction("Index", "Dashboard");
-        return View();
+        {
+            return RedirectAfterLogin(returnUrl);
+        }
+
+        return View(new LoginViewModel { ReturnUrl = returnUrl });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Login(string username, string password, string portal)
+    public async Task<IActionResult> Login(LoginViewModel model)
     {
-        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(portal))
+        if (string.IsNullOrWhiteSpace(model.Username) || string.IsNullOrEmpty(model.Password) || string.IsNullOrWhiteSpace(model.Portal))
         {
-            ModelState.AddModelError("", "Username, password and portal are required.");
-            return View();
+            return LoginFailure(model, "Username, password and portal are required.");
         }
 
         var user = _context.Users
-            .FirstOrDefault(u => u.Username == username && u.IsActive);
+            .FirstOrDefault(u => u.Username == model.Username && u.IsActive);
 
-        if (user == null || !_passwordService.VerifyPassword(password, user.PasswordHash))
+        if (user == null || !_passwordService.VerifyPassword(model.Password, user.PasswordHash))
         {
-            ModelState.AddModelError("", "Invalid username or password.");
-            return View();
+            return LoginFailure(model, "Invalid username or password.");
         }
 
         var userRoles = _context.UserRoles
@@ -54,10 +55,9 @@ public class AuthController : Controller
             .Select(ur => ur.Role.Name)
             .ToList();
 
-        if (!userRoles.Contains(portal))
+        if (!userRoles.Contains(model.Portal))
         {
-            ModelState.AddModelError("", $"This account is not registered as a {portal}.");
-            return View();
+            return LoginFailure(model, $"This account is not registered as a {model.Portal}.");
         }
 
         var claims = new List<Claim>
@@ -76,8 +76,34 @@ public class AuthController : Controller
 
         var identity = new ClaimsIdentity(claims, "CookieAuth");
         var principal = new ClaimsPrincipal(identity);
+        var authenticationProperties = new AuthenticationProperties
+        {
+            IsPersistent = model.RememberMe,
+            AllowRefresh = true
+        };
 
-        await HttpContext.SignInAsync("CookieAuth", principal);
+        await HttpContext.SignInAsync("CookieAuth", principal, authenticationProperties);
+
+        return RedirectAfterLogin(model.ReturnUrl);
+    }
+
+    private IActionResult LoginFailure(LoginViewModel model, string message)
+    {
+        model.Password = string.Empty;
+        ModelState.Remove(nameof(LoginViewModel.Password));
+        ModelState.AddModelError(string.Empty, message);
+        return View(model);
+    }
+
+    private IActionResult RedirectAfterLogin(string? returnUrl)
+    {
+        var tenantPrefix = $"/{_tenantProvider.Slug}/";
+        if (!string.IsNullOrWhiteSpace(returnUrl)
+            && Url.IsLocalUrl(returnUrl)
+            && returnUrl.StartsWith(tenantPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return LocalRedirect(returnUrl);
+        }
 
         return RedirectToAction("Index", "Dashboard");
     }

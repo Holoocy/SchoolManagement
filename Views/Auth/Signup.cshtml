@@ -2,92 +2,311 @@
 @inject SchoolManagement.Services.ITenantProvider TenantProvider
 
 @{
-    ViewData["Title"] = "Sign Up";
+    ViewData["Title"] = "Create account";
 }
 
-<div class="container mt-5 mb-5">
-    <div class="row justify-content-center">
-        <div class="col-md-7">
-            <div class="card">
-                <div class="card-body">
-                    <h3 class="card-title text-center mb-1">Create Your Account</h3>
-                    <p class="text-muted text-center mb-4">@(TenantProvider.SchoolName ?? "School Management")</p>
+<div class="signup-shell">
+    <aside class="signup-showcase" aria-label="Account creation introduction">
+        <a class="signup-brand" asp-controller="Auth" asp-action="Login" aria-label="Return to sign in">
+            <span class="signup-brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 3.5 27 9.3 16 15.1 5 9.3 16 3.5Z" fill="currentColor" />
+                    <path d="M8.5 12.2V19c0 2.4 3.35 4.35 7.5 4.35s7.5-1.95 7.5-4.35v-6.8L16 16.15 8.5 12.2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                </svg>
+            </span>
+            <span>School Portal</span>
+        </a>
 
-                    <form method="post" asp-action="Signup" asp-controller="Auth">
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+        <div class="signup-showcase-copy">
+            <p class="signup-eyebrow">Your school, connected</p>
+            <h1>Set up your account in a few simple steps.</h1>
+            <p>Link your existing school record to get the information and tools relevant to you.</p>
+        </div>
 
-                        <div class="mb-3">
-                            <label for="Role" class="form-label">I am a</label>
-                            <select name="Role" id="Role" class="form-select" onchange="updateLinkCodeLabel()">
-                                <option value="Teacher" selected="@(Model.Role == "Teacher" ? "selected" : null)">Teacher</option>
-                                <option value="Student" selected="@(Model.Role == "Student" || Model.Role == null ? "selected" : null)">Student</option>
-                                <option value="Parent" selected="@(Model.Role == "Parent" ? "selected" : null)">Parent</option>
-                            </select>
-                        </div>
+        <div class="signup-showcase-note">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4.5 6v5c0 4.65 3.15 8.7 7.5 10 4.35-1.3 7.5-5.35 7.5-10V6L12 3Z" /><path d="m9 12 2 2 4-4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <span>Your details are protected and used only to create your school portal access.</span>
+        </div>
+    </aside>
 
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label asp-for="FullName" class="form-label"></label>
-                                <input asp-for="FullName" class="form-control" />
-                                <span asp-validation-for="FullName" class="text-danger"></span>
-                            </div>
-                            <div class="col-md-6">
-                                <label asp-for="Username" class="form-label"></label>
-                                <input asp-for="Username" class="form-control" />
-                                <span asp-validation-for="Username" class="text-danger"></span>
-                            </div>
-                            <div class="col-md-6">
-                                <label asp-for="Email" class="form-label"></label>
-                                <input asp-for="Email" class="form-control" />
-                                <span asp-validation-for="Email" class="text-danger"></span>
-                            </div>
-                            <div class="col-md-6">
-                                <label asp-for="LinkCode" class="form-label" id="linkCodeLabel">Admission Number</label>
-                                <input asp-for="LinkCode" class="form-control" />
-                                <span asp-validation-for="LinkCode" class="text-danger"></span>
-                                <div class="form-text" id="linkCodeHelp">Ask the school office for your Admission Number.</div>
-                            </div>
-                            <div class="col-md-6">
-                                <label asp-for="Password" class="form-label"></label>
-                                <input asp-for="Password" class="form-control" />
-                                <span asp-validation-for="Password" class="text-danger"></span>
-                            </div>
-                            <div class="col-md-6">
-                                <label asp-for="ConfirmPassword" class="form-label"></label>
-                                <input asp-for="ConfirmPassword" class="form-control" />
-                                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100 mt-4">Create Account</button>
-                    </form>
-
-                    <div class="text-center mt-3">
-                        <small class="text-muted">Already have an account? <a asp-controller="Auth" asp-action="Login">Log in</a></small>
-                    </div>
-                </div>
+    <section class="signup-panel" aria-labelledby="signup-heading">
+        <div class="signup-school">
+            @if (!string.IsNullOrWhiteSpace(TenantProvider.LogoPath))
+            {
+                <img src="@TenantProvider.LogoPath" alt="@TenantProvider.SchoolName logo" class="signup-school-logo" />
+            }
+            <div>
+                <span>Creating an account for</span>
+                <strong>@(TenantProvider.SchoolName ?? "School Management")</strong>
             </div>
         </div>
-    </div>
+
+        <div class="signup-intro">
+            <p class="signup-eyebrow">Create account</p>
+            <h2 id="signup-heading">Let’s get you started</h2>
+            <p>Complete each step to create your secure portal access.</p>
+        </div>
+
+        <ol class="signup-progress" aria-label="Account setup progress">
+            <li class="is-active" data-signup-progress="1"><span>1</span><strong>Role</strong></li>
+            <li data-signup-progress="2"><span>2</span><strong>Profile</strong></li>
+            <li data-signup-progress="3"><span>3</span><strong>Verify</strong></li>
+            <li data-signup-progress="4"><span>4</span><strong>Secure</strong></li>
+        </ol>
+
+        <form method="post" asp-action="Signup" asp-controller="Auth" class="signup-form" id="signup-form">
+            <div asp-validation-summary="ModelOnly" class="signup-error-summary" id="signup-error-summary" role="alert" tabindex="-1"></div>
+
+            <section class="signup-step is-active" data-signup-step="1" aria-labelledby="signup-step-role">
+                <div class="signup-step-heading">
+                    <span class="signup-step-number">Step 1 of 4</span>
+                    <h3 id="signup-step-role" tabindex="-1">Which account best describes you?</h3>
+                    <p>Select the role you have at school. We will tailor your portal after registration.</p>
+                </div>
+
+                <div class="signup-role-options" role="radiogroup" aria-label="Account type">
+                    <label class="signup-role-card">
+                        <input asp-for="Role" type="radio" value="Teacher" required />
+                        <span class="signup-role-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="7" r="3" /><path d="M5.5 20c.55-3.15 2.7-5 6.5-5s5.95 1.85 6.5 5" stroke-linecap="round" /><path d="M17.5 4.5h3v3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                        </span>
+                        <span><strong>Teacher</strong><small>Manage classes and learning</small></span>
+                    </label>
+                    <label class="signup-role-card">
+                        <input asp-for="Role" type="radio" value="Student" required />
+                        <span class="signup-role-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3.5 7.5 8.5-4 8.5 4-8.5 4-8.5-4Z" stroke-linejoin="round" /><path d="M6.5 10v4.25c0 1.8 2.45 3.25 5.5 3.25s5.5-1.45 5.5-3.25V10" /></svg>
+                        </span>
+                        <span><strong>Student</strong><small>Follow your learning journey</small></span>
+                    </label>
+                    <label class="signup-role-card">
+                        <input asp-for="Role" type="radio" value="Parent" required />
+                        <span class="signup-role-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="2.5" /><circle cx="17" cy="9" r="2" /><path d="M3.5 20c.45-3.2 2.32-5 5.5-5 3.2 0 5.08 1.8 5.5 5M15 15.6c2.95.15 4.67 1.65 5 4.4" stroke-linecap="round" /></svg>
+                        </span>
+                        <span><strong>Parent</strong><small>Stay informed and involved</small></span>
+                    </label>
+                </div>
+                <p class="signup-role-error" id="signup-role-error" hidden>Please choose an account type to continue.</p>
+                <div class="signup-actions signup-actions-end">
+                    <button type="button" class="btn btn-primary signup-next" data-signup-next>Continue <span aria-hidden="true">→</span></button>
+                </div>
+            </section>
+
+            <section class="signup-step" data-signup-step="2" aria-labelledby="signup-step-profile" hidden>
+                <div class="signup-step-heading">
+                    <span class="signup-step-number">Step 2 of 4</span>
+                    <h3 id="signup-step-profile" tabindex="-1">Tell us about yourself</h3>
+                    <p>Use the details that the school has on file for you.</p>
+                </div>
+
+                <div class="signup-fields">
+                    <div class="signup-field signup-field-full">
+                        <label asp-for="FullName" class="form-label"></label>
+                        <input asp-for="FullName" class="form-control" autocomplete="name" required />
+                        <span asp-validation-for="FullName" class="field-validation-error"></span>
+                    </div>
+                    <div class="signup-field">
+                        <label asp-for="Username" class="form-label"></label>
+                        <input asp-for="Username" class="form-control" autocomplete="username" required />
+                        <span asp-validation-for="Username" class="field-validation-error"></span>
+                    </div>
+                    <div class="signup-field">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control" autocomplete="email" required />
+                        <span asp-validation-for="Email" class="field-validation-error"></span>
+                    </div>
+                </div>
+                <div class="signup-actions">
+                    <button type="button" class="signup-back" data-signup-back>Back</button>
+                    <button type="button" class="btn btn-primary signup-next" data-signup-next>Continue <span aria-hidden="true">→</span></button>
+                </div>
+            </section>
+
+            <section class="signup-step" data-signup-step="3" aria-labelledby="signup-step-verify" hidden>
+                <div class="signup-step-heading">
+                    <span class="signup-step-number">Step 3 of 4</span>
+                    <h3 id="signup-step-verify" tabindex="-1">Verify your school record</h3>
+                    <p id="linkCodeHelp">Ask the school office for your Admission Number.</p>
+                </div>
+
+                <div class="signup-verification-card">
+                    <span class="signup-verification-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="14" rx="2" /><circle cx="8.5" cy="11" r="2" /><path d="M6 16c.3-1.55 1.15-2.5 2.5-2.5S10.7 14.45 11 16M14 10h3.5M14 14h3.5" stroke-linecap="round" /></svg>
+                    </span>
+                    <div class="signup-field">
+                        <label asp-for="LinkCode" class="form-label" id="linkCodeLabel">Admission Number</label>
+                        <input asp-for="LinkCode" class="form-control" autocomplete="off" required />
+                        <span asp-validation-for="LinkCode" class="field-validation-error"></span>
+                    </div>
+                </div>
+                <p class="signup-assurance">This simply links your new account to your existing school record.</p>
+                <div class="signup-actions">
+                    <button type="button" class="signup-back" data-signup-back>Back</button>
+                    <button type="button" class="btn btn-primary signup-next" data-signup-next>Continue <span aria-hidden="true">→</span></button>
+                </div>
+            </section>
+
+            <section class="signup-step" data-signup-step="4" aria-labelledby="signup-step-secure" hidden>
+                <div class="signup-step-heading">
+                    <span class="signup-step-number">Step 4 of 4</span>
+                    <h3 id="signup-step-secure" tabindex="-1">Secure your account</h3>
+                    <p>Choose a password with at least six characters.</p>
+                </div>
+
+                <div class="signup-fields">
+                    <div class="signup-field">
+                        <label for="Password" class="form-label">Password</label>
+                        <div class="signup-password-wrap">
+                            <input type="password" id="Password" name="Password" class="form-control" autocomplete="new-password" required minlength="6" />
+                            <button type="button" class="signup-password-toggle" data-password-target="Password" aria-label="Show password">
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.5" /></svg>
+                            </button>
+                        </div>
+                        <span asp-validation-for="Password" class="field-validation-error"></span>
+                    </div>
+                    <div class="signup-field">
+                        <label for="ConfirmPassword" class="form-label">Confirm password</label>
+                        <div class="signup-password-wrap">
+                            <input type="password" id="ConfirmPassword" name="ConfirmPassword" class="form-control" autocomplete="new-password" required />
+                            <button type="button" class="signup-password-toggle" data-password-target="ConfirmPassword" aria-label="Show password">
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.5" /></svg>
+                            </button>
+                        </div>
+                        <span asp-validation-for="ConfirmPassword" class="field-validation-error"></span>
+                    </div>
+                </div>
+                <div class="signup-actions">
+                    <button type="button" class="signup-back" data-signup-back>Back</button>
+                    <button type="submit" class="btn btn-primary signup-create" data-signup-create>
+                        <span data-signup-create-label>Create my account</span><span aria-hidden="true">→</span>
+                    </button>
+                </div>
+                <span class="visually-hidden" role="status" aria-live="polite" data-signup-status></span>
+            </section>
+        </form>
+
+        <p class="signup-login-link">Already have an account? <a asp-controller="Auth" asp-action="Login">Sign in instead</a></p>
+    </section>
 </div>
 
 @section Scripts {
     <script>
-        function updateLinkCodeLabel() {
-            var role = document.getElementById('Role').value;
-            var label = document.getElementById('linkCodeLabel');
-            var help = document.getElementById('linkCodeHelp');
-            if (role === 'Teacher') {
-                label.textContent = 'Employee ID';
-                help.textContent = 'Ask the school office for your Employee ID.';
-            } else if (role === 'Parent') {
-                label.textContent = "Child's Admission Number";
-                help.textContent = "Enter your child's Admission Number to link your account.";
-            } else {
-                label.textContent = 'Admission Number';
-                help.textContent = 'Ask the school office for your Admission Number.';
+        (function () {
+            var form = document.getElementById('signup-form');
+            var steps = Array.from(document.querySelectorAll('[data-signup-step]'));
+            var progressItems = Array.from(document.querySelectorAll('[data-signup-progress]'));
+            var roleInputs = Array.from(document.querySelectorAll('input[name="Role"]'));
+            var roleError = document.getElementById('signup-role-error');
+            var summary = document.getElementById('signup-error-summary');
+            var currentStep = 1;
+
+            function showStep(stepNumber, moveFocus) {
+                currentStep = stepNumber;
+                steps.forEach(function (step) {
+                    var isCurrent = Number(step.dataset.signupStep) === currentStep;
+                    step.hidden = !isCurrent;
+                    step.classList.toggle('is-active', isCurrent);
+                });
+
+                progressItems.forEach(function (item) {
+                    var itemStep = Number(item.dataset.signupProgress);
+                    item.classList.toggle('is-active', itemStep === currentStep);
+                    item.classList.toggle('is-complete', itemStep < currentStep);
+                    item.setAttribute('aria-current', itemStep === currentStep ? 'step' : 'false');
+                });
+
+                if (moveFocus) {
+                    steps[currentStep - 1].querySelector('h3')?.focus();
+                }
             }
-        }
-        updateLinkCodeLabel();
+
+            function updateLinkCodeCopy() {
+                var role = document.querySelector('input[name="Role"]:checked')?.value || 'Student';
+                var label = document.getElementById('linkCodeLabel');
+                var help = document.getElementById('linkCodeHelp');
+                if (role === 'Teacher') {
+                    label.textContent = 'Employee ID';
+                    help.textContent = 'Ask the school office for your Employee ID.';
+                } else if (role === 'Parent') {
+                    label.textContent = "Child's Admission Number";
+                    help.textContent = "Enter your child's Admission Number to link your account.";
+                } else {
+                    label.textContent = 'Admission Number';
+                    help.textContent = 'Ask the school office for your Admission Number.';
+                }
+            }
+
+            function validateCurrentStep() {
+                if (currentStep === 1) {
+                    var hasRole = roleInputs.some(function (input) { return input.checked; });
+                    roleError.hidden = hasRole;
+                    return hasRole;
+                }
+
+                var controls = Array.from(steps[currentStep - 1].querySelectorAll('input[required], select[required]'));
+                var firstInvalid = controls.find(function (control) { return !control.checkValidity(); });
+                firstInvalid?.reportValidity();
+                return !firstInvalid;
+            }
+
+            document.querySelectorAll('[data-signup-next]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    if (validateCurrentStep()) {
+                        showStep(currentStep + 1, true);
+                    }
+                });
+            });
+
+            document.querySelectorAll('[data-signup-back]').forEach(function (button) {
+                button.addEventListener('click', function () { showStep(currentStep - 1, true); });
+            });
+
+            roleInputs.forEach(function (input) {
+                input.addEventListener('change', function () {
+                    roleError.hidden = true;
+                    updateLinkCodeCopy();
+                });
+            });
+
+            document.querySelectorAll('[data-password-target]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    var field = document.getElementById(this.dataset.passwordTarget);
+                    var isVisible = field.type === 'text';
+                    field.type = isVisible ? 'password' : 'text';
+                    this.setAttribute('aria-label', isVisible ? 'Show password' : 'Hide password');
+                });
+            });
+
+            form.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter' && currentStep < 4) {
+                    event.preventDefault();
+                    if (validateCurrentStep()) {
+                        showStep(currentStep + 1, true);
+                    }
+                }
+            });
+
+            form.addEventListener('submit', function () {
+                if (!form.checkValidity()) {
+                    return;
+                }
+
+                var createButton = document.querySelector('[data-signup-create]');
+                createButton.disabled = true;
+                createButton.setAttribute('aria-disabled', 'true');
+                createButton.querySelector('[data-signup-create-label]').textContent = 'Creating your account…';
+                document.querySelector('[data-signup-status]').textContent = 'Creating your account. Please wait.';
+            });
+
+            updateLinkCodeCopy();
+            var invalidInput = document.querySelector('.signup-step .input-validation-error');
+            if (invalidInput) {
+                showStep(Number(invalidInput.closest('[data-signup-step]').dataset.signupStep), false);
+                invalidInput.focus();
+            } else if (summary.querySelector('ul')) {
+                summary.focus();
+            }
+        })();
     </script>
 }

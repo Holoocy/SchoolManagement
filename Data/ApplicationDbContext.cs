@@ -247,21 +247,6 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<ExamQuestion>().HasQueryFilter(e => e.SchoolId == _tenantProvider.SchoolId);
         modelBuilder.Entity<ExamSubmission>().HasQueryFilter(e => e.SchoolId == _tenantProvider.SchoolId);
 
-        // The app never stores timezone-aware instants, only plain calendar dates/times
-        // (birthdays, due dates, "created on" stamps). Mapping DateTime columns to
-        // Postgres's "timestamp without time zone" means it accepts any DateTime.Kind,
-        // instead of rejecting anything that isn't exactly Kind=Utc (the default
-        // "timestamp with time zone" mapping does, unlike SQL Server which never checked).
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-        {
-            foreach (var property in entityType.GetProperties())
-            {
-                if (property.ClrType == typeof(DateTime) || property.ClrType == typeof(DateTime?))
-                {
-                    property.SetColumnType("timestamp without time zone");
-                }
-            }
-        }
     }
 
     public override int SaveChanges()

@@ -1,79 +1,308 @@
 @model SchoolManagement.Models.OnboardViewModel
 
 @{
-    ViewData["Title"] = "Onboard Your School";
+    ViewData["Title"] = "Set up your school";
 }
 
-<div class="container mt-5 mb-5">
-    <div class="row justify-content-center">
-        <div class="col-md-7">
-            <div class="card">
-                <div class="card-body">
-                    <h3 class="card-title text-center mb-1">Onboard Your School</h3>
-                    <p class="text-muted text-center mb-4">Create a dedicated space for your school and become its first Admin.</p>
+<div class="onboarding-shell">
+    <aside class="onboarding-showcase" aria-label="School setup introduction">
+        <a class="onboarding-brand" asp-controller="Home" asp-action="Index" aria-label="School Portal home">
+            <span class="onboarding-brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 3.5 27 9.3 16 15.1 5 9.3 16 3.5Z" fill="currentColor" />
+                    <path d="M8.5 12.2V19c0 2.4 3.35 4.35 7.5 4.35s7.5-1.95 7.5-4.35v-6.8L16 16.15 8.5 12.2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                </svg>
+            </span>
+            <span>School Portal</span>
+        </a>
 
-                    <form method="post" asp-action="Index" asp-controller="Onboard" enctype="multipart/form-data">
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+        <div class="onboarding-showcase-copy">
+            <p class="onboarding-eyebrow">Built for better school days</p>
+            <h1>Your school’s digital home starts here.</h1>
+            <p>Create a secure, branded workspace for your staff, students, and families in just a few minutes.</p>
+        </div>
 
-                        <div class="mb-3">
-                            <label asp-for="SchoolName" class="form-label"></label>
-                            <input asp-for="SchoolName" class="form-control" placeholder="e.g. Heavens Gate Academy" />
-                            <span asp-validation-for="SchoolName" class="text-danger"></span>
-                            <div class="form-text">This becomes your school's URL, e.g. yourapp.com/heavens-gate-academy</div>
-                        </div>
-
-                        <div class="row g-3">
-                            <div class="col-md-8">
-                                <label asp-for="LogoFile" class="form-label">School Logo (optional)</label>
-                                <input asp-for="LogoFile" type="file" accept="image/*" class="form-control" />
-                                <div class="form-text">Shown in your sidebar. PNG or JPG recommended.</div>
-                            </div>
-                            <div class="col-md-4">
-                                <label asp-for="ThemeColor" class="form-label">Theme Color</label>
-                                <input asp-for="ThemeColor" type="color" class="form-control form-control-color" title="Choose your school's theme color" />
-                            </div>
-                        </div>
-
-                        <hr class="my-4" />
-                        <p class="text-muted small mb-3">Your Admin account</p>
-
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label asp-for="FullName" class="form-label"></label>
-                                <input asp-for="FullName" class="form-control" />
-                                <span asp-validation-for="FullName" class="text-danger"></span>
-                            </div>
-                            <div class="col-md-6">
-                                <label asp-for="Username" class="form-label"></label>
-                                <input asp-for="Username" class="form-control" />
-                                <span asp-validation-for="Username" class="text-danger"></span>
-                            </div>
-                            <div class="col-md-6">
-                                <label asp-for="Email" class="form-label"></label>
-                                <input asp-for="Email" class="form-control" />
-                                <span asp-validation-for="Email" class="text-danger"></span>
-                            </div>
-                            <div class="col-md-6"></div>
-                            <div class="col-md-6">
-                                <label asp-for="Password" class="form-label"></label>
-                                <input asp-for="Password" class="form-control" />
-                                <span asp-validation-for="Password" class="text-danger"></span>
-                            </div>
-                            <div class="col-md-6">
-                                <label asp-for="ConfirmPassword" class="form-label"></label>
-                                <input asp-for="ConfirmPassword" class="form-control" />
-                                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100 mt-4">Create My School</button>
-                    </form>
-
-                    <div class="text-center mt-3">
-                        <small class="text-muted">Already have a school? <a asp-controller="Home" asp-action="Index">Back to home</a></small>
-                    </div>
-                </div>
+        <div class="onboarding-promise-list" aria-label="What setup includes">
+            <div>
+                <span class="onboarding-promise-icon" aria-hidden="true">01</span>
+                <span><strong>Your school space</strong><small>A unique portal address for your community.</small></span>
+            </div>
+            <div>
+                <span class="onboarding-promise-icon" aria-hidden="true">02</span>
+                <span><strong>Your visual identity</strong><small>Bring your logo and school color with you.</small></span>
+            </div>
+            <div>
+                <span class="onboarding-promise-icon" aria-hidden="true">03</span>
+                <span><strong>Your admin access</strong><small>Start managing your school right away.</small></span>
             </div>
         </div>
-    </div>
+
+        <p class="onboarding-showcase-footer"><span aria-hidden="true"></span> A thoughtful start to a better connected school.</p>
+    </aside>
+
+    <section class="onboarding-panel" aria-labelledby="onboarding-heading">
+        <div class="onboarding-panel-header">
+            <div>
+                <p class="onboarding-eyebrow">School setup</p>
+                <h2 id="onboarding-heading">Create your school space</h2>
+                <p>Complete the steps below. You can update your branding later.</p>
+            </div>
+            <a asp-controller="Home" asp-action="Index" class="onboarding-exit">Exit setup</a>
+        </div>
+
+        <ol class="onboarding-progress" aria-label="School setup progress">
+            <li class="is-active" data-onboarding-progress="1"><span>1</span><strong>School</strong></li>
+            <li data-onboarding-progress="2"><span>2</span><strong>Brand</strong></li>
+            <li data-onboarding-progress="3"><span>3</span><strong>Admin</strong></li>
+        </ol>
+
+        <form method="post" asp-action="Index" asp-controller="Onboard" enctype="multipart/form-data" class="onboarding-form" id="onboarding-form">
+            <div asp-validation-summary="ModelOnly" class="onboarding-error-summary" id="onboarding-error-summary" role="alert" tabindex="-1"></div>
+
+            <section class="onboarding-step is-active" data-onboarding-step="1" aria-labelledby="onboarding-step-school">
+                <div class="onboarding-step-heading">
+                    <span>Step 1 of 3</span>
+                    <h3 id="onboarding-step-school" tabindex="-1">Name your school space</h3>
+                    <p>This name appears across your portal and creates a unique address for your school community.</p>
+                </div>
+
+                <div class="onboarding-field">
+                    <label asp-for="SchoolName" class="form-label"></label>
+                    <input asp-for="SchoolName" class="form-control" placeholder="e.g. Heavens Gate Academy" autocomplete="organization" required data-school-name />
+                    <span asp-validation-for="SchoolName" class="field-validation-error"></span>
+                </div>
+
+                <div class="onboarding-url-preview" aria-live="polite">
+                    <span class="onboarding-url-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8.5 7.5H7a4 4 0 0 0 0 8h1.5M15.5 7.5H17a4 4 0 0 1 0 8h-1.5M8 12h8" stroke-linecap="round" /></svg>
+                    </span>
+                    <span><small>Your portal address</small><strong><span data-portal-slug>your-school</span>.schoolportal.com</strong></span>
+                </div>
+
+                <div class="onboarding-actions onboarding-actions-end">
+                    <button type="button" class="btn btn-primary onboarding-next" data-onboarding-next>Continue <span aria-hidden="true">→</span></button>
+                </div>
+            </section>
+
+            <section class="onboarding-step" data-onboarding-step="2" aria-labelledby="onboarding-step-brand" hidden>
+                <div class="onboarding-step-heading">
+                    <span>Step 2 of 3</span>
+                    <h3 id="onboarding-step-brand" tabindex="-1">Make it unmistakably yours</h3>
+                    <p>Add a logo and school color. Both can be changed at any time from your settings.</p>
+                </div>
+
+                <div class="onboarding-branding-grid">
+                    <div class="onboarding-upload-area">
+                        <input asp-for="LogoFile" type="file" accept="image/*" class="onboarding-logo-input" data-logo-input />
+                        <label for="LogoFile" class="onboarding-logo-dropzone">
+                            <span class="onboarding-logo-preview" data-logo-preview hidden><img alt="Selected school logo preview" /></span>
+                            <span class="onboarding-upload-icon" data-upload-icon aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4M7.5 8.5 12 4l4.5 4.5M5 20h14" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                            </span>
+                            <span><strong data-upload-label>Upload school logo</strong><small>PNG or JPG, optional</small></span>
+                        </label>
+                    </div>
+
+                    <div class="onboarding-color-choice">
+                        <label asp-for="ThemeColor" class="form-label">School color</label>
+                        <div class="onboarding-color-control">
+                            <input asp-for="ThemeColor" type="color" title="Choose your school's theme color" data-theme-color />
+                            <span class="onboarding-color-swatch" data-theme-swatch aria-hidden="true"></span>
+                            <span><strong data-theme-value>#2563eb</strong><small>Used across your portal</small></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="onboarding-brand-preview">
+                    <span class="onboarding-preview-mark" data-preview-mark aria-hidden="true">S</span>
+                    <span><small>Your new school portal</small><strong data-preview-school-name>Your School</strong></span>
+                    <span class="onboarding-preview-accent" data-preview-accent aria-hidden="true"></span>
+                </div>
+
+                <div class="onboarding-actions">
+                    <button type="button" class="onboarding-back" data-onboarding-back>Back</button>
+                    <button type="button" class="btn btn-primary onboarding-next" data-onboarding-next>Continue <span aria-hidden="true">→</span></button>
+                </div>
+            </section>
+
+            <section class="onboarding-step" data-onboarding-step="3" aria-labelledby="onboarding-step-admin" hidden>
+                <div class="onboarding-step-heading">
+                    <span>Step 3 of 3</span>
+                    <h3 id="onboarding-step-admin" tabindex="-1">Create the first admin account</h3>
+                    <p>You will use these details to manage the school and invite your community.</p>
+                </div>
+
+                <div class="onboarding-admin-fields">
+                    <div class="onboarding-field onboarding-field-full">
+                        <label asp-for="FullName" class="form-label"></label>
+                        <input asp-for="FullName" class="form-control" autocomplete="name" required />
+                        <span asp-validation-for="FullName" class="field-validation-error"></span>
+                    </div>
+                    <div class="onboarding-field">
+                        <label asp-for="Username" class="form-label"></label>
+                        <input asp-for="Username" class="form-control" autocomplete="username" required />
+                        <span asp-validation-for="Username" class="field-validation-error"></span>
+                    </div>
+                    <div class="onboarding-field">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control" autocomplete="email" required />
+                        <span asp-validation-for="Email" class="field-validation-error"></span>
+                    </div>
+                    <div class="onboarding-field">
+                        <label for="Password" class="form-label">Password</label>
+                        <div class="onboarding-password-wrap">
+                            <input type="password" id="Password" name="Password" class="form-control" autocomplete="new-password" required minlength="6" />
+                            <button type="button" class="onboarding-password-toggle" data-password-target="Password" aria-label="Show password">
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.5" /></svg>
+                            </button>
+                        </div>
+                        <span asp-validation-for="Password" class="field-validation-error"></span>
+                    </div>
+                    <div class="onboarding-field">
+                        <label for="ConfirmPassword" class="form-label">Confirm password</label>
+                        <div class="onboarding-password-wrap">
+                            <input type="password" id="ConfirmPassword" name="ConfirmPassword" class="form-control" autocomplete="new-password" required />
+                            <button type="button" class="onboarding-password-toggle" data-password-target="ConfirmPassword" aria-label="Show password">
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.5" /></svg>
+                            </button>
+                        </div>
+                        <span asp-validation-for="ConfirmPassword" class="field-validation-error"></span>
+                    </div>
+                </div>
+
+                <div class="onboarding-completion-note">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4.5 6v5c0 4.65 3.15 8.7 7.5 10 4.35-1.3 7.5-5.35 7.5-10V6L12 3Z" /><path d="m9 12 2 2 4-4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    Your account becomes the first administrator for this school.
+                </div>
+
+                <div class="onboarding-actions">
+                    <button type="button" class="onboarding-back" data-onboarding-back>Back</button>
+                    <button type="submit" class="btn btn-primary onboarding-create" data-onboarding-create><span data-onboarding-create-label>Create my school</span><span aria-hidden="true">→</span></button>
+                </div>
+                <span class="visually-hidden" role="status" aria-live="polite" data-onboarding-status></span>
+            </section>
+        </form>
+    </section>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var form = document.getElementById('onboarding-form');
+            var steps = Array.from(document.querySelectorAll('[data-onboarding-step]'));
+            var progressItems = Array.from(document.querySelectorAll('[data-onboarding-progress]'));
+            var schoolName = document.querySelector('[data-school-name]');
+            var currentStep = 1;
+
+            function slugify(value) {
+                return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'your-school';
+            }
+
+            function updateSchoolPreview() {
+                var name = schoolName.value.trim();
+                document.querySelector('[data-portal-slug]').textContent = slugify(name);
+                document.querySelector('[data-preview-school-name]').textContent = name || 'Your School';
+                document.querySelector('[data-preview-mark]').textContent = name ? name.charAt(0).toUpperCase() : 'S';
+            }
+
+            function showStep(stepNumber, moveFocus) {
+                currentStep = stepNumber;
+                steps.forEach(function (step) {
+                    var isCurrent = Number(step.dataset.onboardingStep) === currentStep;
+                    step.hidden = !isCurrent;
+                    step.classList.toggle('is-active', isCurrent);
+                });
+                progressItems.forEach(function (item) {
+                    var itemStep = Number(item.dataset.onboardingProgress);
+                    item.classList.toggle('is-active', itemStep === currentStep);
+                    item.classList.toggle('is-complete', itemStep < currentStep);
+                    item.setAttribute('aria-current', itemStep === currentStep ? 'step' : 'false');
+                });
+                if (moveFocus) {
+                    steps[currentStep - 1].querySelector('h3')?.focus();
+                }
+            }
+
+            function validateCurrentStep() {
+                var controls = Array.from(steps[currentStep - 1].querySelectorAll('input[required], select[required]'));
+                var firstInvalid = controls.find(function (control) { return !control.checkValidity(); });
+                firstInvalid?.reportValidity();
+                return !firstInvalid;
+            }
+
+            schoolName.addEventListener('input', updateSchoolPreview);
+            document.querySelectorAll('[data-onboarding-next]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    if (validateCurrentStep()) {
+                        showStep(currentStep + 1, true);
+                    }
+                });
+            });
+            document.querySelectorAll('[data-onboarding-back]').forEach(function (button) {
+                button.addEventListener('click', function () { showStep(currentStep - 1, true); });
+            });
+
+            document.querySelectorAll('[data-password-target]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    var field = document.getElementById(this.dataset.passwordTarget);
+                    var isVisible = field.type === 'text';
+                    field.type = isVisible ? 'password' : 'text';
+                    this.setAttribute('aria-label', isVisible ? 'Show password' : 'Hide password');
+                });
+            });
+
+            var colorInput = document.querySelector('[data-theme-color]');
+            function updateColorPreview() {
+                var color = colorInput.value;
+                document.querySelector('[data-theme-value]').textContent = color;
+                document.querySelector('[data-theme-swatch]').style.backgroundColor = color;
+                document.querySelector('[data-preview-mark]').style.backgroundColor = color;
+                document.querySelector('[data-preview-accent]').style.backgroundColor = color;
+            }
+            colorInput.addEventListener('input', updateColorPreview);
+
+            var logoInput = document.querySelector('[data-logo-input]');
+            logoInput.addEventListener('change', function () {
+                var preview = document.querySelector('[data-logo-preview]');
+                var image = preview.querySelector('img');
+                var uploadIcon = document.querySelector('[data-upload-icon]');
+                var uploadLabel = document.querySelector('[data-upload-label]');
+                if (this.files && this.files[0]) {
+                    image.src = URL.createObjectURL(this.files[0]);
+                    preview.hidden = false;
+                    uploadIcon.hidden = true;
+                    uploadLabel.textContent = 'Logo selected';
+                }
+            });
+
+            form.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter' && currentStep < 3) {
+                    event.preventDefault();
+                    if (validateCurrentStep()) {
+                        showStep(currentStep + 1, true);
+                    }
+                }
+            });
+            form.addEventListener('submit', function () {
+                if (!form.checkValidity()) {
+                    return;
+                }
+                var button = document.querySelector('[data-onboarding-create]');
+                button.disabled = true;
+                button.setAttribute('aria-disabled', 'true');
+                button.querySelector('[data-onboarding-create-label]').textContent = 'Creating your school…';
+                document.querySelector('[data-onboarding-status]').textContent = 'Creating your school. Please wait.';
+            });
+
+            updateSchoolPreview();
+            updateColorPreview();
+            var invalidInput = document.querySelector('.onboarding-step .input-validation-error');
+            if (invalidInput) {
+                showStep(Number(invalidInput.closest('[data-onboarding-step]').dataset.onboardingStep), false);
+                invalidInput.focus();
+            } else if (document.querySelector('#onboarding-error-summary ul')) {
+                document.getElementById('onboarding-error-summary').focus();
+            }
+        })();
+    </script>
+}

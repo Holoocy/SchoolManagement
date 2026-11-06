@@ -1,55 +1,195 @@
+@model SchoolManagement.Models.LoginViewModel
 @inject SchoolManagement.Services.ITenantProvider TenantProvider
 @{
-    ViewData["Title"] = "Login";
+    ViewData["Title"] = "Sign in";
 }
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h3 class="card-title text-center mb-1">@(TenantProvider.SchoolName ?? "School Management")</h3>
-                    <p class="text-muted text-center mb-4">Sign in to your account</p>
+<div class="auth-login-shell">
+    <aside class="auth-showcase" aria-label="School portal introduction">
+        <div class="auth-showcase-brand">
+            <span class="auth-brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 3.5 27 9.3 16 15.1 5 9.3 16 3.5Z" fill="currentColor" />
+                    <path d="M8.5 12.2V19c0 2.4 3.35 4.35 7.5 4.35s7.5-1.95 7.5-4.35v-6.8L16 16.15 8.5 12.2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                    <path d="M27 9.5v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+            </span>
+            <span>School Portal</span>
+        </div>
 
-                    <form method="post" asp-action="Login" asp-controller="Auth">
-                        @if (ViewData.ModelState.IsValid == false)
-                        {
-                            <div class="alert alert-danger">
-                                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-                            </div>
-                        }
+        <div class="auth-showcase-copy">
+            <p class="auth-showcase-eyebrow">One connected school</p>
+            <h1>Bring every school day into focus.</h1>
+            <p>Stay on top of learning, attendance, and school life from one secure place.</p>
+        </div>
 
-                        <div class="mb-3">
-                            <label for="portal" class="form-label">I am logging in as</label>
-                            <select name="portal" id="portal" class="form-select">
-                                <option value="Admin">Admin</option>
-                                <option value="Teacher">Teacher</option>
-                                <option value="Student">Student</option>
-                                <option value="Parent">Parent</option>
-                            </select>
-                        </div>
+        <ul class="auth-showcase-points" aria-label="Portal features">
+            <li>
+                <span class="auth-check" aria-hidden="true">✓</span>
+                <span>Clear updates for every member of your school community.</span>
+            </li>
+            <li>
+                <span class="auth-check" aria-hidden="true">✓</span>
+                <span>One secure sign-in for administrators, teachers, students, and parents.</span>
+            </li>
+        </ul>
 
-                        <div class="mb-3">
-                            <label for="username" class="form-label">Username</label>
-                            <input type="text" class="form-control" id="username" name="username" required />
-                        </div>
+        <div class="auth-showcase-footer">
+            <span class="auth-status-dot" aria-hidden="true"></span>
+            Secure school management, made simple
+        </div>
+    </aside>
 
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between">
-                                <label for="password" class="form-label">Password</label>
-                                <a asp-controller="Auth" asp-action="ForgotPassword" class="small">Forgot password?</a>
-                            </div>
-                            <input type="password" class="form-control" id="password" name="password" required />
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100">Login</button>
-                    </form>
-
-                    <div class="text-center mt-3">
-                        <small class="text-muted">Teacher, Student or Parent? <a asp-controller="Auth" asp-action="Signup">Create an account</a></small>
-                    </div>
+    <section class="auth-login-panel" aria-labelledby="login-heading">
+        <div class="auth-login-school">
+            <div class="auth-login-school-brand">
+                @if (!string.IsNullOrWhiteSpace(TenantProvider.LogoPath))
+                {
+                    <img src="@TenantProvider.LogoPath" alt="@TenantProvider.SchoolName logo" class="auth-login-school-logo" />
+                }
+                else
+                {
+                    <span class="auth-login-school-mark" aria-hidden="true">
+                        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16 3.5 27 9.3 16 15.1 5 9.3 16 3.5Z" fill="currentColor" />
+                            <path d="M8.5 12.2V19c0 2.4 3.35 4.35 7.5 4.35s7.5-1.95 7.5-4.35v-6.8L16 16.15 8.5 12.2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                        </svg>
+                    </span>
+                }
+                <div>
+                    <span class="auth-login-school-label">Welcome to</span>
+                    <span class="auth-login-school-name">@(TenantProvider.SchoolName ?? "School Management")</span>
                 </div>
             </div>
         </div>
-    </div>
+
+        <div class="auth-login-intro">
+            <p class="auth-kicker">Sign in</p>
+            <h2 id="login-heading">Welcome back</h2>
+            <p>Enter your details to access your portal.</p>
+        </div>
+
+        <form method="post" asp-action="Login" asp-controller="Auth" class="auth-login-form" id="login-form">
+            <input asp-for="ReturnUrl" type="hidden" />
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="auth-login-alert" id="login-error" role="alert" tabindex="-1">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M12 8v4M12 16h.01" stroke-linecap="round" />
+                    </svg>
+                    <div>@Html.ValidationSummary(true, "", new { @class = "auth-login-error-list" })</div>
+                </div>
+            }
+
+            <div class="auth-field">
+                <label for="Portal" class="form-label">Sign in as</label>
+                <select asp-for="Portal" id="Portal" class="form-select auth-login-select" data-no-choices="true" required>
+                    <option value="Admin">Administrator</option>
+                    <option value="Teacher">Teacher</option>
+                    <option value="Student">Student</option>
+                    <option value="Parent">Parent</option>
+                </select>
+            </div>
+
+            <div class="auth-field">
+                <label for="Username" class="form-label">Username</label>
+                <div class="auth-input-wrap">
+                    <svg class="auth-input-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <circle cx="12" cy="8" r="3.25" />
+                        <path d="M5.5 20c.55-3.1 2.72-5 6.5-5s5.95 1.9 6.5 5" stroke-linecap="round" />
+                    </svg>
+                    <input asp-for="Username" type="text" class="form-control" autocomplete="username" required autofocus />
+                </div>
+            </div>
+
+            <div class="auth-field auth-password-field">
+                <div class="auth-field-heading">
+                    <label for="Password" class="form-label">Password</label>
+                    <a asp-controller="Auth" asp-action="ForgotPassword">Forgot password?</a>
+                </div>
+                <div class="auth-input-wrap">
+                    <svg class="auth-input-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <rect x="5" y="10" width="14" height="10" rx="2" />
+                        <path d="M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10" stroke-linecap="round" />
+                    </svg>
+                    <input asp-for="Password" type="password" class="form-control" autocomplete="current-password" required aria-describedby="caps-lock-warning" />
+                    <button class="auth-password-toggle" type="button" aria-label="Show password" aria-controls="Password" data-password-toggle>
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                            <circle cx="12" cy="12" r="2.5" />
+                        </svg>
+                    </button>
+                </div>
+                <p class="auth-caps-warning" id="caps-lock-warning" role="status" aria-live="polite" hidden>
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 2.5 20h19L12 3Z" stroke-linejoin="round" /><path d="M12 9v4M12 17h.01" stroke-linecap="round" /></svg>
+                    Caps Lock is on
+                </p>
+            </div>
+
+            <label class="auth-remember-option">
+                <input asp-for="RememberMe" class="form-check-input" />
+                <span>
+                    <strong>Keep me signed in</strong>
+                    <small>Only on a private, trusted device</small>
+                </span>
+            </label>
+
+            <button type="submit" class="btn btn-primary auth-login-submit" data-login-submit>
+                <span data-login-submit-label>Sign in to your portal</span>
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </button>
+            <span class="visually-hidden" role="status" aria-live="polite" data-login-status></span>
+        </form>
+
+        <p class="auth-login-signup">
+            Need an account? <a asp-controller="Auth" asp-action="Signup">Create one here</a>
+        </p>
+    </section>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var form = document.getElementById('login-form');
+            var password = document.getElementById('Password');
+            var toggle = document.querySelector('[data-password-toggle]');
+            var capsWarning = document.getElementById('caps-lock-warning');
+            var loginError = document.getElementById('login-error');
+            var submitButton = document.querySelector('[data-login-submit]');
+            var submitLabel = document.querySelector('[data-login-submit-label]');
+            var loginStatus = document.querySelector('[data-login-status]');
+
+            loginError?.focus();
+
+            toggle?.addEventListener('click', function () {
+                var isVisible = password.type === 'text';
+                password.type = isVisible ? 'password' : 'text';
+                this.setAttribute('aria-label', isVisible ? 'Show password' : 'Hide password');
+            });
+
+            function updateCapsLockWarning(event) {
+                capsWarning.hidden = !(event.getModifierState && event.getModifierState('CapsLock'));
+            }
+
+            password?.addEventListener('keydown', updateCapsLockWarning);
+            password?.addEventListener('keyup', updateCapsLockWarning);
+            password?.addEventListener('blur', function () { capsWarning.hidden = true; });
+
+            form?.addEventListener('submit', function () {
+                if (!form.checkValidity()) {
+                    return;
+                }
+
+                form.setAttribute('aria-busy', 'true');
+                submitButton.disabled = true;
+                submitButton.setAttribute('aria-disabled', 'true');
+                submitLabel.textContent = 'Signing in…';
+                loginStatus.textContent = 'Signing in. Please wait.';
+            });
+        })();
+    </script>
+}
