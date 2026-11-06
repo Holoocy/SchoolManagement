@@ -12,6 +12,18 @@
     <a class="btn btn-primary" asp-action="Create">Add Item</a>
 </div>
 
+@if (!Model.Any())
+{
+    @await Html.PartialAsync("_ClassicEmptyState", new SchoolManagement.Models.EmptyStateViewModel
+    {
+        Title = "Plan the week with clarity",
+        Description = "Add your first checklist item to keep important school work visible and on track.",
+        Action = "Create",
+        ActionText = "Add a checklist item"
+    })
+}
+else
+{
 <table class="table table-striped table-bordered">
     <thead class="table-dark">
         <tr>
@@ -53,3 +65,4 @@
         }
     </tbody>
 </table>
+}

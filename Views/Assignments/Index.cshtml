@@ -21,6 +21,18 @@
     <div class="alert alert-warning">@TempData["AssignmentError"]</div>
 }
 
+@if (!Model.Any())
+{
+    @await Html.PartialAsync("_ClassicEmptyState", new SchoolManagement.Models.EmptyStateViewModel
+    {
+        Title = "Ready for the first assignment",
+        Description = "Create an assignment to share focused learning tasks with your students.",
+        Action = "Create",
+        ActionText = "Create an assignment"
+    })
+}
+else
+{
 <table class="table table-striped table-bordered">
     <thead class="table-dark">
         <tr>
@@ -66,3 +78,4 @@
         }
     </tbody>
 </table>
+}

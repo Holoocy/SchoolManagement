@@ -17,6 +17,18 @@
     <div class="alert alert-success">@TempData["TeacherSuccess"]</div>
 }
 
+@if (!Model.Any())
+{
+    @await Html.PartialAsync("_ClassicEmptyState", new SchoolManagement.Models.EmptyStateViewModel
+    {
+        Title = "Your teaching team starts here",
+        Description = "Add your first teacher to begin assigning classes, subjects, and school responsibilities.",
+        Action = "Create",
+        ActionText = "Add your first teacher"
+    })
+}
+else
+{
 <table class="table table-striped table-bordered">
     <thead class="table-dark">
         <tr>
@@ -46,3 +58,4 @@
         }
     </tbody>
 </table>
+}

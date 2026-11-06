@@ -24,6 +24,19 @@
     </div>
 </form>
 
+@if (!Model.Any())
+{
+    var isSearching = !string.IsNullOrWhiteSpace(ViewBag.Search as string);
+    @await Html.PartialAsync("_ClassicEmptyState", new SchoolManagement.Models.EmptyStateViewModel
+    {
+        Title = isSearching ? "No students match your search" : "Your student directory is ready",
+        Description = isSearching ? "Try another name or admission number, or clear your search to see all students." : "Add your first student to begin building your school community.",
+        Action = isSearching ? "Index" : "Create",
+        ActionText = isSearching ? "Clear search" : "Add your first student"
+    })
+}
+else
+{
 <table class="table table-striped table-bordered align-middle">
     <thead class="table-dark">
         <tr>
@@ -72,3 +85,4 @@
         }
     </tbody>
 </table>
+}

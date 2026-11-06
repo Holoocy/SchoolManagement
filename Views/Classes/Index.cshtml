@@ -12,6 +12,18 @@
     <a class="btn btn-primary" asp-action="Create">Add Class</a>
 </div>
 
+@if (!Model.Any())
+{
+    @await Html.PartialAsync("_ClassicEmptyState", new SchoolManagement.Models.EmptyStateViewModel
+    {
+        Title = "Create your first class",
+        Description = "Organize your students into classes to make daily school management easier.",
+        Action = "Create",
+        ActionText = "Add a class"
+    })
+}
+else
+{
 <table class="table table-striped table-bordered">
     <thead class="table-dark">
         <tr>
@@ -36,3 +48,4 @@
         }
     </tbody>
 </table>
+}

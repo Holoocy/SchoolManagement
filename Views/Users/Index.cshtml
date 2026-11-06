@@ -16,6 +16,16 @@
     <div class="alert alert-success">@TempData["UserSuccess"]</div>
 }
 
+@if (!Model.Any())
+{
+    @await Html.PartialAsync("_ClassicEmptyState", new SchoolManagement.Models.EmptyStateViewModel
+    {
+        Title = "No user accounts found",
+        Description = "User accounts appear here after staff, students, and parents create or receive portal access."
+    })
+}
+else
+{
 <table class="table table-striped table-bordered align-middle">
     <thead class="table-dark">
         <tr>
@@ -47,3 +57,4 @@
         }
     </tbody>
 </table>
+}
