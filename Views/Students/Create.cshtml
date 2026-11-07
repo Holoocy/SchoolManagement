@@ -4,98 +4,274 @@
     ViewData["Title"] = "Add Student";
 }
 
-<div class="mb-3">
-    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+<div class="enrollment-page">
+    <header class="enrollment-header">
+        <div>
+            <p class="enrollment-eyebrow">Student directory</p>
+            <h1>Enroll a student</h1>
+            <p>Create a complete student record through a short, focused enrollment flow.</p>
+        </div>
+        <a asp-action="Index" class="enrollment-back-link">← Back to students</a>
+    </header>
+
+    <ol class="enrollment-progress" aria-label="Student enrollment progress">
+        <li class="is-active" data-enrollment-progress="1"><span>1</span><strong>Student</strong></li>
+        <li data-enrollment-progress="2"><span>2</span><strong>Contact</strong></li>
+        <li data-enrollment-progress="3"><span>3</span><strong>Placement</strong></li>
+        <li data-enrollment-progress="4"><span>4</span><strong>Review</strong></li>
+    </ol>
+
+    <form method="post" asp-action="Create" enctype="multipart/form-data" class="enrollment-form" id="enrollment-form">
+        <div asp-validation-summary="ModelOnly" class="enrollment-error-summary" id="enrollment-error-summary" role="alert" tabindex="-1"></div>
+
+        <section class="enrollment-step is-active" data-enrollment-step="1" aria-labelledby="enrollment-student-heading">
+            <div class="enrollment-step-heading">
+                <span>Step 1 of 4</span>
+                <h2 id="enrollment-student-heading" tabindex="-1">Start with the student</h2>
+                <p>Add the student’s personal details and an optional passport photo.</p>
+            </div>
+
+            <div class="enrollment-profile-grid">
+                <div class="enrollment-photo-field">
+                    <input type="file" name="photoFile" id="photoFile" class="enrollment-photo-input" accept="image/*" data-photo-input />
+                    <label for="photoFile" class="enrollment-photo-dropzone">
+                        <span class="enrollment-photo-preview" data-photo-preview hidden><img alt="Selected passport photo preview" /></span>
+                        <span class="enrollment-photo-icon" data-photo-icon aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="4" width="17" height="16" rx="2" /><circle cx="12" cy="10" r="3" /><path d="M6.5 18c.65-2.6 2.5-4.05 5.5-4.05S16.85 15.4 17.5 18" stroke-linecap="round" /></svg>
+                        </span>
+                        <span><strong data-photo-label>Add passport photo</strong><small>Optional · PNG or JPG</small></span>
+                    </label>
+                </div>
+
+                <div class="enrollment-personal-fields">
+                    <div class="enrollment-fields-grid">
+                        <div class="enrollment-field">
+                            <label asp-for="FirstName" class="form-label"></label>
+                            <input asp-for="FirstName" class="form-control" autocomplete="given-name" required autofocus />
+                            <span asp-validation-for="FirstName" class="field-validation-error"></span>
+                        </div>
+                        <div class="enrollment-field">
+                            <label asp-for="LastName" class="form-label"></label>
+                            <input asp-for="LastName" class="form-control" autocomplete="family-name" required />
+                            <span asp-validation-for="LastName" class="field-validation-error"></span>
+                        </div>
+                        <div class="enrollment-field">
+                            <label asp-for="DateOfBirth" class="form-label"></label>
+                            <input asp-for="DateOfBirth" class="form-control" required />
+                            <span asp-validation-for="DateOfBirth" class="field-validation-error"></span>
+                        </div>
+                        <fieldset class="enrollment-field enrollment-gender-field">
+                            <legend class="form-label">Gender</legend>
+                            <div class="enrollment-gender-options">
+                                <label class="enrollment-gender-option"><input type="radio" name="Gender" value="Male" checked="@(Model?.Gender == "Male" ? "checked" : null)" required /><span>Male</span></label>
+                                <label class="enrollment-gender-option"><input type="radio" name="Gender" value="Female" checked="@(Model?.Gender == "Female" ? "checked" : null)" required /><span>Female</span></label>
+                            </div>
+                            <span asp-validation-for="Gender" class="field-validation-error"></span>
+                        </fieldset>
+                    </div>
+                </div>
+            </div>
+
+            <div class="enrollment-actions enrollment-actions-end">
+                <button type="button" class="btn btn-primary enrollment-next" data-enrollment-next>Continue <span aria-hidden="true">→</span></button>
+            </div>
+        </section>
+
+        <section class="enrollment-step" data-enrollment-step="2" aria-labelledby="enrollment-contact-heading" hidden>
+            <div class="enrollment-step-heading">
+                <span>Step 2 of 4</span>
+                <h2 id="enrollment-contact-heading" tabindex="-1">How can the family be reached?</h2>
+                <p>These details help your school keep the student record current and connected.</p>
+            </div>
+
+            <div class="enrollment-fields-grid enrollment-contact-grid">
+                <div class="enrollment-field">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control" autocomplete="email" required />
+                    <span asp-validation-for="Email" class="field-validation-error"></span>
+                </div>
+                <div class="enrollment-field">
+                    <label asp-for="Phone" class="form-label"></label>
+                    <input asp-for="Phone" class="form-control" autocomplete="tel" />
+                    <span asp-validation-for="Phone" class="field-validation-error"></span>
+                </div>
+                <div class="enrollment-field enrollment-field-wide">
+                    <label asp-for="Address" class="form-label"></label>
+                    <textarea asp-for="Address" class="form-control" autocomplete="street-address" rows="4" required></textarea>
+                    <span asp-validation-for="Address" class="field-validation-error"></span>
+                </div>
+            </div>
+
+            <div class="enrollment-actions">
+                <button type="button" class="enrollment-back" data-enrollment-back>Back</button>
+                <button type="button" class="btn btn-primary enrollment-next" data-enrollment-next>Continue <span aria-hidden="true">→</span></button>
+            </div>
+        </section>
+
+        <section class="enrollment-step" data-enrollment-step="3" aria-labelledby="enrollment-placement-heading" hidden>
+            <div class="enrollment-step-heading">
+                <span>Step 3 of 4</span>
+                <h2 id="enrollment-placement-heading" tabindex="-1">Place the student in their school context</h2>
+                <p>Set the student’s class and academic calendar. These can be updated later.</p>
+            </div>
+
+            <div class="enrollment-placement-card">
+                <span class="enrollment-placement-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3.5 7.5 8.5-4 8.5 4-8.5 4-8.5-4Z" stroke-linejoin="round" /><path d="M6.5 10v4.25c0 1.8 2.45 3.25 5.5 3.25s5.5-1.45 5.5-3.25V10" /></svg>
+                </span>
+                <div class="enrollment-fields-grid">
+                    <div class="enrollment-field">
+                        <label asp-for="ClassId" class="form-label"></label>
+                        <select asp-for="ClassId" class="form-select" asp-items="ViewBag.Classes">
+                            <option value="">Unassigned for now</option>
+                        </select>
+                    </div>
+                    <div class="enrollment-field">
+                        <label asp-for="AcademicCalendar" class="form-label"></label>
+                        <select asp-for="AcademicCalendar" class="form-select">
+                            <option value="">Select a calendar</option>
+                            <option value="1st Semester">1st Semester</option>
+                            <option value="2nd Semester">2nd Semester</option>
+                            <option value="1st Term">1st Term</option>
+                            <option value="2nd Term">2nd Term</option>
+                            <option value="3rd Term">3rd Term</option>
+                            <option value="Winter">Winter</option>
+                            <option value="Summer">Summer</option>
+                            <option value="Spring">Spring</option>
+                            <option value="Fall">Fall</option>
+                            <option value="Autumn">Autumn</option>
+                        </select>
+                    </div>
+                    <div class="enrollment-field">
+                        <label asp-for="EnrollmentDate" class="form-label"></label>
+                        <input asp-for="EnrollmentDate" class="form-control" required />
+                        <span asp-validation-for="EnrollmentDate" class="field-validation-error"></span>
+                    </div>
+                    <label class="enrollment-active-option">
+                        <input asp-for="IsActive" class="form-check-input" />
+                        <span><strong>Active student</strong><small>Enable access to school activities</small></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="enrollment-actions">
+                <button type="button" class="enrollment-back" data-enrollment-back>Back</button>
+                <button type="button" class="btn btn-primary enrollment-next" data-enrollment-next>Continue <span aria-hidden="true">→</span></button>
+            </div>
+        </section>
+
+        <section class="enrollment-step" data-enrollment-step="4" aria-labelledby="enrollment-review-heading" hidden>
+            <div class="enrollment-step-heading">
+                <span>Step 4 of 4</span>
+                <h2 id="enrollment-review-heading" tabindex="-1">Review and enroll</h2>
+                <p>Check the key details before adding this student to your school directory.</p>
+            </div>
+
+            <div class="enrollment-review-card">
+                <div class="enrollment-review-avatar" data-review-initials>ST</div>
+                <div class="enrollment-review-details">
+                    <span><small>Student</small><strong data-review-name>Student name</strong></span>
+                    <span><small>Class</small><strong data-review-class>Unassigned</strong></span>
+                    <span><small>Contact</small><strong data-review-email>Not provided</strong></span>
+                    <span><small>Enrollment</small><strong data-review-date>Not set</strong></span>
+                </div>
+            </div>
+            <p class="enrollment-admission-note"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4.5 6v5c0 4.65 3.15 8.7 7.5 10 4.35-1.3 7.5-5.35 7.5-10V6L12 3Z" /><path d="m9 12 2 2 4-4" stroke-linecap="round" stroke-linejoin="round" /></svg> A unique admission number will be assigned automatically when you enroll the student.</p>
+
+            <div class="enrollment-actions">
+                <button type="button" class="enrollment-back" data-enrollment-back>Back</button>
+                <button type="submit" class="btn btn-primary enrollment-save" data-enrollment-save><span data-enrollment-save-label>Enroll student</span></button>
+            </div>
+            <span class="visually-hidden" role="status" aria-live="polite" data-enrollment-status></span>
+        </section>
+    </form>
 </div>
 
-<h2>Add Student</h2>
-<p class="text-muted small">The Admission Number will be generated automatically.</p>
+@section Scripts {
+    <script>
+        (function () {
+            var form = document.getElementById('enrollment-form');
+            var steps = Array.from(document.querySelectorAll('[data-enrollment-step]'));
+            var progress = Array.from(document.querySelectorAll('[data-enrollment-progress]'));
+            var currentStep = 1;
 
-<form asp-action="Create" enctype="multipart/form-data">
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            function showStep(stepNumber, moveFocus) {
+                currentStep = stepNumber;
+                steps.forEach(function (step) {
+                    var active = Number(step.dataset.enrollmentStep) === currentStep;
+                    step.hidden = !active;
+                    step.classList.toggle('is-active', active);
+                });
+                progress.forEach(function (item) {
+                    var itemStep = Number(item.dataset.enrollmentProgress);
+                    item.classList.toggle('is-active', itemStep === currentStep);
+                    item.classList.toggle('is-complete', itemStep < currentStep);
+                    item.setAttribute('aria-current', itemStep === currentStep ? 'step' : 'false');
+                });
+                if (moveFocus) steps[currentStep - 1].querySelector('h2')?.focus();
+                if (currentStep === 4) updateReview();
+            }
 
-    <div class="row g-3">
-        <div class="col-md-6">
-            <label for="photoFile" class="form-label">Passport Photo</label>
-            <input type="file" name="photoFile" id="photoFile" class="form-control" accept="image/*" />
-        </div>
-        <div class="col-md-6">
-            <label asp-for="ClassId" class="form-label"></label>
-            <select asp-for="ClassId" class="form-select" asp-items="ViewBag.Classes">
-                <option value="">-- Unassigned --</option>
-            </select>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="AcademicCalendar" class="form-label"></label>
-            <select asp-for="AcademicCalendar" class="form-select">
-                <option value="">-- Select --</option>
-                <option value="1st Semester">1st Semester</option>
-                <option value="2nd Semester">2nd Semester</option>
-                <option value="1st Term">1st Term</option>
-                <option value="2nd Term">2nd Term</option>
-                <option value="3rd Term">3rd Term</option>
-                <option value="Winter">Winter</option>
-                <option value="Summer">Summer</option>
-                <option value="Spring">Spring</option>
-                <option value="Fall">Fall</option>
-                <option value="Autumn">Autumn</option>
-            </select>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="FirstName" class="form-label"></label>
-            <input asp-for="FirstName" class="form-control" />
-            <span asp-validation-for="FirstName" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="LastName" class="form-label"></label>
-            <input asp-for="LastName" class="form-control" />
-            <span asp-validation-for="LastName" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="DateOfBirth" class="form-label"></label>
-            <input asp-for="DateOfBirth" class="form-control" />
-            <span asp-validation-for="DateOfBirth" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="Gender" class="form-label d-block"></label>
-            <div class="btn-group" role="group">
-                <input type="radio" class="btn-check" name="Gender" id="genderMale" value="Male" autocomplete="off" checked="@(Model?.Gender == "Male" ? "checked" : null)" />
-                <label class="btn btn-outline-secondary" for="genderMale">Male</label>
-                <input type="radio" class="btn-check" name="Gender" id="genderFemale" value="Female" autocomplete="off" checked="@(Model?.Gender == "Female" ? "checked" : null)" />
-                <label class="btn btn-outline-secondary" for="genderFemale">Female</label>
-            </div>
-            <span asp-validation-for="Gender" class="text-danger d-block"></span>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="Email" class="form-label"></label>
-            <input asp-for="Email" class="form-control" />
-            <span asp-validation-for="Email" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="Phone" class="form-label"></label>
-            <input asp-for="Phone" class="form-control" />
-            <span asp-validation-for="Phone" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="Address" class="form-label"></label>
-            <textarea asp-for="Address" class="form-control"></textarea>
-            <span asp-validation-for="Address" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="EnrollmentDate" class="form-label"></label>
-            <input asp-for="EnrollmentDate" class="form-control" />
-            <span asp-validation-for="EnrollmentDate" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <div class="form-check mt-4">
-                <input asp-for="IsActive" class="form-check-input" />
-                <label asp-for="IsActive" class="form-check-label"></label>
-            </div>
-        </div>
-    </div>
+            function validateCurrentStep() {
+                var controls = Array.from(steps[currentStep - 1].querySelectorAll('input[required], textarea[required], select[required]'));
+                var firstInvalid = controls.find(function (control) { return !control.checkValidity(); });
+                firstInvalid?.reportValidity();
+                return !firstInvalid;
+            }
 
-    <div class="mt-4">
-        <button type="submit" class="btn btn-primary">Save</button>
-        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-    </div>
-</form>
+            function selectedText(id, fallback) {
+                var select = document.getElementById(id);
+                return select && select.value ? select.options[select.selectedIndex].text : fallback;
+            }
+
+            function updateReview() {
+                var firstName = document.getElementById('FirstName').value.trim();
+                var lastName = document.getElementById('LastName').value.trim();
+                var fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Student name';
+                document.querySelector('[data-review-name]').textContent = fullName;
+                document.querySelector('[data-review-initials]').textContent = ((firstName[0] || 'S') + (lastName[0] || 'T')).toUpperCase();
+                document.querySelector('[data-review-class]').textContent = selectedText('ClassId', 'Unassigned');
+                document.querySelector('[data-review-email]').textContent = document.getElementById('Email').value.trim() || 'Not provided';
+                document.querySelector('[data-review-date]').textContent = document.getElementById('EnrollmentDate').value || 'Not set';
+            }
+
+            document.querySelectorAll('[data-enrollment-next]').forEach(function (button) {
+                button.addEventListener('click', function () { if (validateCurrentStep()) showStep(currentStep + 1, true); });
+            });
+            document.querySelectorAll('[data-enrollment-back]').forEach(function (button) {
+                button.addEventListener('click', function () { showStep(currentStep - 1, true); });
+            });
+            form.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter' && currentStep < 4) {
+                    event.preventDefault();
+                    if (validateCurrentStep()) showStep(currentStep + 1, true);
+                }
+            });
+            form.addEventListener('submit', function () {
+                if (!form.checkValidity()) return;
+                var saveButton = document.querySelector('[data-enrollment-save]');
+                saveButton.disabled = true;
+                saveButton.querySelector('[data-enrollment-save-label]').textContent = 'Enrolling student…';
+                document.querySelector('[data-enrollment-status]').textContent = 'Enrolling student. Please wait.';
+            });
+
+            var photoInput = document.querySelector('[data-photo-input]');
+            photoInput.addEventListener('change', function () {
+                if (!this.files || !this.files[0]) return;
+                var preview = document.querySelector('[data-photo-preview]');
+                preview.querySelector('img').src = URL.createObjectURL(this.files[0]);
+                preview.hidden = false;
+                document.querySelector('[data-photo-icon]').hidden = true;
+                document.querySelector('[data-photo-label]').textContent = 'Photo selected';
+            });
+
+            var invalidInput = document.querySelector('.enrollment-step .input-validation-error');
+            if (invalidInput) {
+                showStep(Number(invalidInput.closest('[data-enrollment-step]').dataset.enrollmentStep), false);
+                invalidInput.focus();
+            } else if (document.querySelector('#enrollment-error-summary ul')) {
+                document.getElementById('enrollment-error-summary').focus();
+            }
+        })();
+    </script>
+}

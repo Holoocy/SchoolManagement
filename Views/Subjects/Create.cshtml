@@ -4,45 +4,12 @@
     ViewData["Title"] = "Create Subject";
 }
 
-<div class="mb-3">
-    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+<div class="entity-form-page">
+    <header class="entity-form-header"><div><p class="entity-form-eyebrow">Academic catalogue</p><h1>Create a subject</h1><p>Set up the subject details teachers and students will use every day.</p></div><a asp-action="Index" class="entity-form-back-link">← Back to subjects</a></header>
+    <form method="post" asp-action="Create" class="entity-form-card">
+        <div asp-validation-summary="ModelOnly" class="entity-form-error-summary" role="alert"></div>
+        <section class="entity-form-section" aria-labelledby="subject-core-heading"><div class="entity-form-section-heading"><span>01</span><div><h2 id="subject-core-heading">Subject information</h2><p>Give the subject a recognizable name, code, and credit value.</p></div></div><div class="entity-form-grid"><div class="entity-form-field"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" autofocus /><span asp-validation-for="Name" class="field-validation-error"></span></div><div class="entity-form-field"><label asp-for="Code" class="form-label"></label><input asp-for="Code" class="form-control" /><span asp-validation-for="Code" class="field-validation-error"></span></div><div class="entity-form-field"><label asp-for="Credits" class="form-label"></label><input asp-for="Credits" class="form-control" /><span asp-validation-for="Credits" class="field-validation-error"></span></div><label class="entity-form-active-option"><input asp-for="IsActive" class="form-check-input" /><span><strong>Active subject</strong><small>Make this subject available for school activities.</small></span></label></div></section>
+        <section class="entity-form-section entity-form-section--last" aria-labelledby="subject-description-heading"><div class="entity-form-section-heading"><span>02</span><div><h2 id="subject-description-heading">Teaching overview</h2><p>Describe the subject so staff can identify its purpose.</p></div></div><div class="entity-form-grid"><div class="entity-form-field entity-form-field--wide"><label asp-for="Description" class="form-label"></label><textarea asp-for="Description" class="form-control" rows="4"></textarea><span asp-validation-for="Description" class="field-validation-error"></span></div></div></section>
+        <footer class="entity-form-actions"><span>Subject settings can be updated whenever needed.</span><div><a asp-action="Index" class="btn btn-light">Back to list</a><button type="submit" class="btn btn-primary">Create subject</button></div></footer>
+    </form>
 </div>
-
-<h2>Create Subject</h2>
-
-<form asp-action="Create">
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-    <div class="row g-3">
-        <div class="col-md-6">
-            <label asp-for="Name" class="form-label"></label>
-            <input asp-for="Name" class="form-control" />
-            <span asp-validation-for="Name" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="Code" class="form-label"></label>
-            <input asp-for="Code" class="form-control" />
-            <span asp-validation-for="Code" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="Credits" class="form-label"></label>
-            <input asp-for="Credits" class="form-control" />
-            <span asp-validation-for="Credits" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="IsActive" class="form-check-label"></label>
-            <input asp-for="IsActive" class="form-check-input" />
-            <span asp-validation-for="IsActive" class="text-danger"></span>
-        </div>
-        <div class="col-md-12">
-            <label asp-for="Description" class="form-label"></label>
-            <textarea asp-for="Description" class="form-control"></textarea>
-            <span asp-validation-for="Description" class="text-danger"></span>
-        </div>
-    </div>
-
-    <div class="mt-4">
-        <button type="submit" class="btn btn-primary">Create</button>
-        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
-    </div>
-</form>

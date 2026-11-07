@@ -4,67 +4,46 @@
     ViewData["Title"] = "Add Teacher";
 }
 
-<div class="mb-3">
-    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+<div class="entity-form-page">
+    <header class="entity-form-header">
+        <div>
+            <p class="entity-form-eyebrow">Faculty directory</p>
+            <h1>Add a teacher</h1>
+            <p>Build a complete staff profile in three focused sections.</p>
+        </div>
+        <a asp-action="Index" class="entity-form-back-link">← Back to teachers</a>
+    </header>
+
+    <form method="post" asp-action="Create" class="entity-form-card">
+        <div asp-validation-summary="ModelOnly" class="entity-form-error-summary" role="alert"></div>
+
+        <section class="entity-form-section" aria-labelledby="teacher-identity-heading">
+            <div class="entity-form-section-heading">
+                <span>01</span>
+                <div><h2 id="teacher-identity-heading">Teacher identity</h2><p>Start with the personal details used throughout the school directory.</p></div>
+            </div>
+            <div class="entity-form-grid">
+                <div class="entity-form-field"><label asp-for="FirstName" class="form-label"></label><input asp-for="FirstName" class="form-control" autocomplete="given-name" autofocus /><span asp-validation-for="FirstName" class="field-validation-error"></span></div>
+                <div class="entity-form-field"><label asp-for="LastName" class="form-label"></label><input asp-for="LastName" class="form-control" autocomplete="family-name" /><span asp-validation-for="LastName" class="field-validation-error"></span></div>
+                <fieldset class="entity-form-field entity-form-choice-field"><legend class="form-label">Gender</legend><div class="entity-form-choice-group"><label><input type="radio" name="Gender" id="genderMale" value="Male" autocomplete="off" checked="@(Model?.Gender == "Male" ? "checked" : null)" /><span>Male</span></label><label><input type="radio" name="Gender" id="genderFemale" value="Female" autocomplete="off" checked="@(Model?.Gender == "Female" ? "checked" : null)" /><span>Female</span></label></div><span asp-validation-for="Gender" class="field-validation-error"></span></fieldset>
+                <div class="entity-form-field"><label asp-for="HireDate" class="form-label"></label><input asp-for="HireDate" class="form-control" /><span asp-validation-for="HireDate" class="field-validation-error"></span></div>
+            </div>
+        </section>
+
+        <section class="entity-form-section" aria-labelledby="teacher-contact-heading">
+            <div class="entity-form-section-heading"><span>02</span><div><h2 id="teacher-contact-heading">Contact details</h2><p>Keep this information current so school communications reach the right person.</p></div></div>
+            <div class="entity-form-grid">
+                <div class="entity-form-field"><label asp-for="Email" class="form-label"></label><input asp-for="Email" class="form-control" autocomplete="email" /><span asp-validation-for="Email" class="field-validation-error"></span></div>
+                <div class="entity-form-field"><label asp-for="Phone" class="form-label"></label><input asp-for="Phone" class="form-control" autocomplete="tel" /><span asp-validation-for="Phone" class="field-validation-error"></span></div>
+                <div class="entity-form-field entity-form-field--wide"><label asp-for="Address" class="form-label"></label><textarea asp-for="Address" class="form-control" autocomplete="street-address" rows="3"></textarea><span asp-validation-for="Address" class="field-validation-error"></span></div>
+            </div>
+        </section>
+
+        <section class="entity-form-section entity-form-section--last" aria-labelledby="teacher-employment-heading">
+            <div class="entity-form-section-heading"><span>03</span><div><h2 id="teacher-employment-heading">Employment status</h2><p>An employee ID will be generated automatically when you save this teacher.</p></div></div>
+            <label class="entity-form-active-option"><input asp-for="IsActive" class="form-check-input" /><span><strong>Active teacher</strong><small>Allow this teacher to participate in school activities.</small></span></label>
+        </section>
+
+        <footer class="entity-form-actions"><span>Employee ID is assigned automatically.</span><div><a asp-action="Index" class="btn btn-light">Cancel</a><button type="submit" class="btn btn-primary">Add teacher</button></div></footer>
+    </form>
 </div>
-
-<h2>Add Teacher</h2>
-<p class="text-muted small">The Employee ID will be generated automatically.</p>
-
-<form asp-action="Create">
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-    <div class="row g-3">
-        <div class="col-md-6">
-            <label asp-for="FirstName" class="form-label"></label>
-            <input asp-for="FirstName" class="form-control" />
-            <span asp-validation-for="FirstName" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="LastName" class="form-label"></label>
-            <input asp-for="LastName" class="form-control" />
-            <span asp-validation-for="LastName" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="Gender" class="form-label d-block"></label>
-            <div class="btn-group" role="group">
-                <input type="radio" class="btn-check" name="Gender" id="genderMale" value="Male" autocomplete="off" checked="@(Model?.Gender == "Male" ? "checked" : null)" />
-                <label class="btn btn-outline-secondary" for="genderMale">Male</label>
-                <input type="radio" class="btn-check" name="Gender" id="genderFemale" value="Female" autocomplete="off" checked="@(Model?.Gender == "Female" ? "checked" : null)" />
-                <label class="btn btn-outline-secondary" for="genderFemale">Female</label>
-            </div>
-            <span asp-validation-for="Gender" class="text-danger d-block"></span>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="Email" class="form-label"></label>
-            <input asp-for="Email" class="form-control" />
-            <span asp-validation-for="Email" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="Phone" class="form-label"></label>
-            <input asp-for="Phone" class="form-control" />
-            <span asp-validation-for="Phone" class="text-danger"></span>
-        </div>
-        <div class="col-md-12">
-            <label asp-for="Address" class="form-label"></label>
-            <textarea asp-for="Address" class="form-control"></textarea>
-            <span asp-validation-for="Address" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="HireDate" class="form-label"></label>
-            <input asp-for="HireDate" class="form-control" />
-            <span asp-validation-for="HireDate" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <div class="form-check mt-4">
-                <input asp-for="IsActive" class="form-check-input" />
-                <label asp-for="IsActive" class="form-check-label"></label>
-            </div>
-        </div>
-    </div>
-
-    <div class="mt-4">
-        <button type="submit" class="btn btn-primary">Save</button>
-        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-    </div>
-</form>

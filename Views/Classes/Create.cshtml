@@ -4,25 +4,11 @@
     ViewData["Title"] = "Add Class";
 }
 
-<div class="mb-3">
-    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+<div class="entity-form-page entity-form-page--compact entity-form-page--class">
+    <header class="entity-form-header"><div><p class="entity-form-eyebrow">Academic structure</p><h1>Add a class</h1><p>Create a class that can be used for student placement and teaching schedules.</p></div><a asp-action="Index" class="entity-form-back-link">← Back to classes</a></header>
+    <form method="post" asp-action="Create" class="entity-form-card">
+        <div asp-validation-summary="ModelOnly" class="entity-form-error-summary" role="alert"></div>
+        <section class="entity-form-section entity-form-section--last" aria-labelledby="class-details-heading"><div class="entity-form-section-heading"><span>01</span><div><h2 id="class-details-heading">Class details</h2><p>Use a clear name that staff will recognize.</p></div></div><div class="entity-form-grid"><div class="entity-form-field"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" placeholder="e.g. Grade 5A" autofocus /><span asp-validation-for="Name" class="field-validation-error"></span></div></div></section>
+        <footer class="entity-form-actions"><span>Classes can be adjusted later from the directory.</span><div><a asp-action="Index" class="btn btn-light">Cancel</a><button type="submit" class="btn btn-primary">Add class</button></div></footer>
+    </form>
 </div>
-
-<h2>Add Class</h2>
-
-<form asp-action="Create">
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-    <div class="row g-3">
-        <div class="col-md-6">
-            <label asp-for="Name" class="form-label"></label>
-            <input asp-for="Name" class="form-control" placeholder="e.g. Grade 5A" />
-            <span asp-validation-for="Name" class="text-danger"></span>
-        </div>
-    </div>
-
-    <div class="mt-4">
-        <button type="submit" class="btn btn-primary">Save</button>
-        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-    </div>
-</form>

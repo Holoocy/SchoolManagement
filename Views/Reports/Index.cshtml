@@ -2,121 +2,130 @@
 
 @{
     ViewData["Title"] = "Reports";
+    var hasAttendance = Model.AttendanceLastSevenDays.Any(day => day.Total > 0);
+    var maximumAttendance = Math.Max(1, Model.AttendanceLastSevenDays.Max(day => day.Total));
 }
 
-<div class="page-header">
-    <h1 class="page-title">Reports</h1>
-    <p class="page-subtitle">Attendance, assignment and checklist performance at a glance</p>
-</div>
+<div class="reports-page">
+    <header class="reports-header">
+        <div>
+            <p class="reports-eyebrow">Executive overview</p>
+            <h1>School reports</h1>
+            <p>A clear view of the people, learning activity, and attendance shaping your school this week.</p>
+        </div>
+        <span class="reports-period"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15" rx="2" /><path d="M7 3v4M17 3v4M3.5 9.5h17" stroke-linecap="round" /></svg> Last 7 days</span>
+    </header>
 
-<div class="stat-grid">
-    <div class="stat-card">
-        <div class="stat-icon stat-icon-blue">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+    <section class="reports-hero" aria-labelledby="reports-hero-heading">
+        <div class="reports-attendance-score">
+            <span class="reports-score-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13h3l2-6 4 11 2-5h5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </span>
+            <span class="reports-score-value">@Model.OverallAttendanceRate<small>%</small></span>
+            <strong>Attendance rate</strong>
+            <span>Based on recorded attendance in the last 7 days</span>
         </div>
-        <div class="stat-value">@Model.TotalStudents</div>
-        <div class="stat-label">Students</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon stat-icon-teal">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2"/></svg>
+        <div class="reports-hero-copy">
+            <p class="reports-eyebrow">At a glance</p>
+            <h2 id="reports-hero-heading">Your school’s activity, in one considered view.</h2>
+            <p>Track the foundation of your school community and quickly move into the work that needs attention.</p>
+            <div class="reports-hero-actions">
+                <a asp-controller="Attendance" asp-action="Index">Review attendance <span aria-hidden="true">→</span></a>
+                <a asp-controller="Assignments" asp-action="Index">Manage assignments <span aria-hidden="true">→</span></a>
+            </div>
         </div>
-        <div class="stat-value">@Model.TotalTeachers</div>
-        <div class="stat-label">Teachers</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon stat-icon-slate">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-        </div>
-        <div class="stat-value">@Model.TotalSubjects</div>
-        <div class="stat-label">Subjects</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon stat-icon-violet">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-        </div>
-        <div class="stat-value">@Model.OverallAttendanceRate%</div>
-        <div class="stat-label">Attendance <span class="stat-sub">last 7 days</span></div>
-    </div>
-</div>
+    </section>
 
-<div class="panel-grid">
-    <div class="panel">
-        <div class="panel-header">
-            <h2 class="panel-title">Attendance — Last 7 Days</h2>
-        </div>
-        <div class="panel-body">
-            @if (Model.AttendanceLastSevenDays.All(d => d.Total == 0))
+    <section class="reports-metrics" aria-label="School totals">
+        <article class="reports-metric-card">
+            <span class="reports-metric-icon students" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg></span>
+            <div><small>Students</small><strong>@Model.TotalStudents</strong><span>Enrolled learners</span></div>
+        </article>
+        <article class="reports-metric-card">
+            <span class="reports-metric-icon teachers" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="7" r="3.5" /><path d="M2.5 20v-1.5A4.5 4.5 0 0 1 7 14h4a4.5 4.5 0 0 1 4.5 4.5V20M17 4a3 3 0 0 1 0 5.8M21.5 20v-1.2a4.4 4.4 0 0 0-2.7-4.05" stroke-linecap="round" /></svg></span>
+            <div><small>Teachers</small><strong>@Model.TotalTeachers</strong><span>Teaching staff</span></div>
+        </article>
+        <article class="reports-metric-card">
+            <span class="reports-metric-icon subjects" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" /></svg></span>
+            <div><small>Subjects</small><strong>@Model.TotalSubjects</strong><span>Active curriculum</span></div>
+        </article>
+        <article class="reports-metric-card">
+            <span class="reports-metric-icon assignments" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M9 13h6M9 17h4" stroke-linecap="round" /></svg></span>
+            <div><small>Assignments</small><strong>@Model.TotalAssignments</strong><span>Learning activities</span></div>
+        </article>
+    </section>
+
+    <div class="reports-content-grid">
+        <section class="reports-card reports-attendance-card" aria-labelledby="attendance-heading">
+            <div class="reports-card-header">
+                <div><p class="reports-card-kicker">Attendance</p><h2 id="attendance-heading">Last seven days</h2></div>
+                <span class="reports-card-meta">Daily recorded presence</span>
+            </div>
+
+            @if (!hasAttendance)
             {
-                <p class="empty-state">No attendance records in the last 7 days.</p>
+                <div class="reports-empty-state">
+                    <span aria-hidden="true">+</span>
+                    <div><h3>Attendance records will appear here</h3><p>Start recording attendance to see daily participation and trends.</p></div>
+                </div>
             }
             else
             {
-                <ul class="entity-list">
+                <div class="reports-chart" role="img" aria-label="Attendance records for the last seven days">
                     @foreach (var day in Model.AttendanceLastSevenDays)
                     {
-                        <li class="entity-list-item entity-list-item-static">
-                            <div>
-                                <div class="entity-title">@day.Date.ToString("dddd, MMM d")</div>
-                                <div class="entity-meta">@day.Present of @day.Total present</div>
-                            </div>
-                            <span class="status-badge @(day.Rate >= 75 ? "status-present" : day.Total == 0 ? "status-pending" : "status-absent")">@day.Rate%</span>
-                        </li>
+                        var barHeight = Math.Max(8m, Math.Round(day.Total * 100m / maximumAttendance, 0));
+                        <div class="reports-chart-column">
+                            <span class="reports-chart-value">@(day.Total > 0 ? $"{day.Rate:0.#}%" : "—")</span>
+                            <div class="reports-chart-track"><span class="@(day.Rate >= 75 ? "is-healthy" : day.Total == 0 ? "is-empty" : "is-attention")" style="height:@barHeight%"></span></div>
+                            <strong>@day.Date.ToString("ddd")</strong>
+                            <small>@day.Date.ToString("MMM d")</small>
+                        </div>
                     }
-                </ul>
+                </div>
+                <div class="reports-attendance-legend"><span><i class="healthy"></i> 75% and above</span><span><i class="attention"></i> Below 75%</span><span><i class="empty"></i> No record</span></div>
             }
-        </div>
-    </div>
+        </section>
 
-    <div class="panel">
-        <div class="panel-header">
-            <h2 class="panel-title">Assignment Status Breakdown</h2>
-            <a asp-controller="Assignments" asp-action="Index" class="panel-link">View all</a>
-        </div>
-        <div class="panel-body">
-            @if (!Model.AssignmentStatusBreakdown.Any())
-            {
-                <p class="empty-state">No assignments yet.</p>
-            }
-            else
-            {
-                <ul class="entity-list">
-                    @foreach (var status in Model.AssignmentStatusBreakdown)
-                    {
-                        <li class="entity-list-item entity-list-item-static">
-                            <div class="entity-title">@status.Status</div>
-                            <span class="status-badge status-@status.Status.ToLower().Replace(" ", "-")">@status.Count</span>
-                        </li>
-                    }
-                </ul>
-            }
-        </div>
-    </div>
-</div>
+        <section class="reports-card reports-work-card" aria-labelledby="work-heading">
+            <div class="reports-card-header">
+                <div><p class="reports-card-kicker">Work in motion</p><h2 id="work-heading">Assignments and checklists</h2></div>
+                <span class="reports-work-total">@Model.TotalAssignments + @Model.TotalWeeklyChecklists</span>
+            </div>
 
-<div class="panel-grid">
-    <div class="panel">
-        <div class="panel-header">
-            <h2 class="panel-title">Weekly Checklist Status Breakdown</h2>
-            <a asp-controller="WeeklyChecklist" asp-action="Index" class="panel-link">View all</a>
-        </div>
-        <div class="panel-body">
-            @if (!Model.WeeklyChecklistStatusBreakdown.Any())
-            {
-                <p class="empty-state">No checklist items yet.</p>
-            }
-            else
-            {
-                <ul class="entity-list">
-                    @foreach (var status in Model.WeeklyChecklistStatusBreakdown)
-                    {
-                        <li class="entity-list-item entity-list-item-static">
-                            <div class="entity-title">@status.Status</div>
-                            <span class="status-badge status-@status.Status.ToLower().Replace(" ", "-")">@status.Count</span>
-                        </li>
-                    }
-                </ul>
-            }
-        </div>
+            <div class="reports-breakdown-section">
+                <div class="reports-breakdown-heading"><span>Assignments</span><a asp-controller="Assignments" asp-action="Index">View all</a></div>
+                @if (!Model.AssignmentStatusBreakdown.Any())
+                {
+                    <p class="reports-inline-empty">No assignments created yet.</p>
+                }
+                else
+                {
+                    <ul class="reports-breakdown-list">
+                        @foreach (var status in Model.AssignmentStatusBreakdown)
+                        {
+                            <li><span><i class="status-@status.Status.ToLower().Replace(" ", "-")"></i>@status.Status</span><strong>@status.Count</strong></li>
+                        }
+                    </ul>
+                }
+            </div>
+
+            <div class="reports-breakdown-section">
+                <div class="reports-breakdown-heading"><span>Weekly checklist</span><a asp-controller="WeeklyChecklist" asp-action="Index">View all</a></div>
+                @if (!Model.WeeklyChecklistStatusBreakdown.Any())
+                {
+                    <p class="reports-inline-empty">No checklist items created yet.</p>
+                }
+                else
+                {
+                    <ul class="reports-breakdown-list">
+                        @foreach (var status in Model.WeeklyChecklistStatusBreakdown)
+                        {
+                            <li><span><i class="status-@status.Status.ToLower().Replace(" ", "-")"></i>@status.Status</span><strong>@status.Count</strong></li>
+                        }
+                    </ul>
+                }
+            </div>
+        </section>
     </div>
 </div>

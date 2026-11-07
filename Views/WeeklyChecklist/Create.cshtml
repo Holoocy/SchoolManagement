@@ -4,64 +4,12 @@
     ViewData["Title"] = "Create Checklist Item";
 }
 
-<div class="mb-3">
-    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+<div class="entity-form-page">
+    <header class="entity-form-header"><div><p class="entity-form-eyebrow">Weekly checklist</p><h1>Create checklist item</h1><p>Plan a clear action item, assign responsibility, and include supporting material.</p></div><a asp-action="Index" class="entity-form-back-link">← Back to checklist</a></header>
+    <form method="post" asp-action="Create" enctype="multipart/form-data" class="entity-form-card">
+        <div asp-validation-summary="ModelOnly" class="entity-form-error-summary" role="alert"></div>
+        <section class="entity-form-section" aria-labelledby="checklist-details-heading"><div class="entity-form-section-heading"><span>01</span><div><h2 id="checklist-details-heading">Work item</h2><p>Describe the task, schedule it, and confirm its current status.</p></div></div><div class="entity-form-grid"><div class="entity-form-field"><label asp-for="Title" class="form-label"></label><input asp-for="Title" class="form-control" autofocus /><span asp-validation-for="Title" class="field-validation-error"></span></div>@if (User.IsInRole("Admin")){<div class="entity-form-field"><label asp-for="AssignedTo" class="form-label"></label><select asp-for="AssignedTo" class="form-select" asp-items="ViewBag.TeacherNames"><option value="">-- Select Teacher --</option></select><span asp-validation-for="AssignedTo" class="field-validation-error"></span></div>}<div class="entity-form-field"><label asp-for="DueDate" class="form-label"></label><input asp-for="DueDate" class="form-control" /><span asp-validation-for="DueDate" class="field-validation-error"></span></div><div class="entity-form-field"><label asp-for="Status" class="form-label"></label><select asp-for="Status" class="form-select"><option value="In Progress">In Progress</option><option value="Done">Done</option></select><span asp-validation-for="Status" class="field-validation-error"></span></div><div class="entity-form-field entity-form-field--wide"><label asp-for="Description" class="form-label"></label><textarea asp-for="Description" class="form-control" rows="4"></textarea><span asp-validation-for="Description" class="field-validation-error"></span></div></div></section>
+        <section class="entity-form-section entity-form-section--last" aria-labelledby="checklist-document-heading"><div class="entity-form-section-heading"><span>02</span><div><h2 id="checklist-document-heading">Supporting document</h2><p>Attach a file when it helps the assignee complete this item.</p></div></div><div class="entity-form-grid"><div class="entity-form-field entity-form-upload-panel"><label class="form-label">Document (optional)</label><input type="file" name="documentFile" class="form-control" /><small>Choose a document to share with the assigned staff.</small></div><div class="entity-form-field"><label class="form-label">Document Visible To</label><select asp-for="DocumentVisibility" class="form-select"><option value="TeacherOnly">Teacher Only</option><option value="Admin">Admin</option></select></div></div></section>
+        <footer class="entity-form-actions"><span>Checklist items remain editable after creation.</span><div><a asp-action="Index" class="btn btn-light">Cancel</a><button type="submit" class="btn btn-primary">Create item</button></div></footer>
+    </form>
 </div>
-
-<h2>Create Checklist Item</h2>
-
-<form asp-action="Create" enctype="multipart/form-data">
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-    <div class="row g-3">
-        <div class="col-md-6">
-            <label asp-for="Title" class="form-label"></label>
-            <input asp-for="Title" class="form-control" />
-            <span asp-validation-for="Title" class="text-danger"></span>
-        </div>
-        @if (User.IsInRole("Admin"))
-        {
-            <div class="col-md-6">
-                <label asp-for="AssignedTo" class="form-label"></label>
-                <select asp-for="AssignedTo" class="form-select" asp-items="ViewBag.TeacherNames">
-                    <option value="">-- Select Teacher --</option>
-                </select>
-                <span asp-validation-for="AssignedTo" class="text-danger"></span>
-            </div>
-        }
-        <div class="col-md-6">
-            <label asp-for="DueDate" class="form-label"></label>
-            <input asp-for="DueDate" class="form-control" />
-            <span asp-validation-for="DueDate" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <label asp-for="Status" class="form-label"></label>
-            <select asp-for="Status" class="form-select">
-                <option value="In Progress">In Progress</option>
-                <option value="Done">Done</option>
-            </select>
-            <span asp-validation-for="Status" class="text-danger"></span>
-        </div>
-        <div class="col-md-12">
-            <label asp-for="Description" class="form-label"></label>
-            <textarea asp-for="Description" class="form-control"></textarea>
-            <span asp-validation-for="Description" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Document (optional)</label>
-            <input type="file" name="documentFile" class="form-control" />
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Document Visible To</label>
-            <select asp-for="DocumentVisibility" class="form-select">
-                <option value="TeacherOnly">Teacher Only</option>
-                <option value="Admin">Admin</option>
-            </select>
-        </div>
-    </div>
-
-    <div class="mt-4">
-        <button type="submit" class="btn btn-primary">Create</button>
-        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-    </div>
-</form>

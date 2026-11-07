@@ -3,85 +3,179 @@
 @{
     ViewData["Title"] = "Transfer Grades";
     int? sourceClassId = ViewBag.SourceClassId;
+    var studentCount = Model.Count();
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <button type="button" class="btn btn-outline-secondary btn-sm mb-2" onclick="history.back()">Back</button>
-        <h2 class="mb-0">Transfer Grades</h2>
-    </div>
+<div class="transfer-page">
+    <header class="transfer-page-header">
+        <div>
+            <p class="transfer-eyebrow">Academic administration</p>
+            <h1>Transfer grades</h1>
+            <p>Move a selected group of students from one grade to another with a clear review before you confirm.</p>
+        </div>
+        <a asp-action="Index" class="transfer-back-link">← Back to classes</a>
+    </header>
+
+    @if (TempData["ClassSuccess"] != null)
+    {
+        <div class="transfer-alert transfer-alert-success" role="status">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" /><path d="m8 12 2.5 2.5L16 9" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            @TempData["ClassSuccess"]
+        </div>
+    }
+    @if (TempData["ClassError"] != null)
+    {
+        <div class="transfer-alert transfer-alert-error" role="alert">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" stroke-linecap="round" /></svg>
+            @TempData["ClassError"]
+        </div>
+    }
+
+    <section class="transfer-step-card" aria-labelledby="transfer-source-heading">
+        <div class="transfer-step-marker" aria-hidden="true"><span>01</span><i></i></div>
+        <div class="transfer-step-copy">
+            <span class="transfer-step-label">Choose the starting point</span>
+            <h2 id="transfer-source-heading">Select a source grade</h2>
+            <p>We will show the students currently enrolled in that grade.</p>
+        </div>
+        <form method="get" asp-action="TransferStudents" class="transfer-source-form">
+            <label for="source-grade" class="form-label">From grade</label>
+            <select id="source-grade" name="classId" class="form-select" onchange="this.form.submit()" asp-items="ViewBag.Classes">
+                <option value="">Choose a grade</option>
+            </select>
+        </form>
+    </section>
+
+    @if (sourceClassId == null)
+    {
+        <section class="transfer-empty-state" aria-labelledby="transfer-empty-heading">
+            <span class="transfer-empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 7h10M7 12h10M7 17h6" stroke-linecap="round" /><rect x="4" y="3" width="16" height="18" rx="2" /></svg>
+            </span>
+            <div>
+                <h2 id="transfer-empty-heading">Start by choosing a grade</h2>
+                <p>Select the grade your students are moving from. You will then choose their destination and review the transfer list.</p>
+            </div>
+        </section>
+    }
+    else if (!Model.Any())
+    {
+        <section class="transfer-empty-state" aria-labelledby="transfer-empty-heading">
+            <span class="transfer-empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 12h8M12 8v8" stroke-linecap="round" /><circle cx="12" cy="12" r="8.5" /></svg>
+            </span>
+            <div>
+                <h2 id="transfer-empty-heading">This grade has no students to transfer</h2>
+                <p>Choose another source grade or add students to this one before starting a transfer.</p>
+            </div>
+        </section>
+    }
+    else
+    {
+        <form method="post" asp-action="TransferStudents" class="transfer-workspace" id="transfer-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="sourceClassId" value="@sourceClassId" />
+
+            <section class="transfer-destination-card" aria-labelledby="transfer-destination-heading">
+                <div class="transfer-step-marker" aria-hidden="true"><span>02</span><i></i></div>
+                <div class="transfer-step-copy">
+                    <span class="transfer-step-label">Review and move</span>
+                    <h2 id="transfer-destination-heading">Choose the destination grade</h2>
+                    <p><strong>@studentCount</strong> student@(studentCount == 1 ? "" : "s") available from the selected source grade.</p>
+                </div>
+                <div class="transfer-destination-control">
+                    <label for="destination-grade" class="form-label">To grade</label>
+                    <select id="destination-grade" name="destinationClassId" class="form-select" asp-items="ViewBag.DestinationClasses" required>
+                        <option value="">Choose destination grade</option>
+                    </select>
+                </div>
+            </section>
+
+            <section class="transfer-student-panel" aria-labelledby="transfer-student-heading">
+                <div class="transfer-panel-header">
+                    <div>
+                        <span class="transfer-step-label">Student selection</span>
+                        <h2 id="transfer-student-heading">Review the transfer list</h2>
+                        <p>Every student is selected by default. Untick anyone who should remain in the current grade.</p>
+                    </div>
+                    <div class="transfer-selection-tools">
+                        <span class="transfer-selection-count" id="selected-count" role="status" aria-live="polite">@studentCount selected</span>
+                        <button type="button" class="transfer-clear-selection" id="clear-selection">Clear selection</button>
+                    </div>
+                </div>
+
+                <div class="transfer-table-wrap">
+                    <table class="table transfer-table">
+                        <thead>
+                            <tr>
+                                <th class="transfer-checkbox-column">
+                                    <input type="checkbox" id="selectAll" checked aria-label="Select all students" />
+                                </th>
+                                <th>Student</th>
+                                <th>Admission number</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var student in Model)
+                            {
+                                <tr>
+                                    <td class="transfer-checkbox-column">
+                                        <input type="checkbox" name="selectedIds" value="@student.Id" class="student-checkbox" checked aria-label="Select @student.FullName, admission number @student.AdmissionNumber" />
+                                    </td>
+                                    <td>
+                                        <div class="transfer-student-name"><span>@student.FirstName[..1]@student.LastName[..1]</span><strong>@student.FullName</strong></div>
+                                    </td>
+                                    <td><span class="transfer-admission-number">@student.AdmissionNumber</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="transfer-confirmation-bar">
+                    <span><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4.5 6v5c0 4.65 3.15 8.7 7.5 10 4.35-1.3 7.5-5.35 7.5-10V6L12 3Z" /><path d="m9 12 2 2 4-4" stroke-linecap="round" stroke-linejoin="round" /></svg> The selected students will move to the chosen grade.</span>
+                    <button type="submit" class="btn btn-primary transfer-submit" data-transfer-submit><span data-transfer-submit-label>Transfer selected students</span></button>
+                </div>
+            </section>
+        </form>
+    }
 </div>
 
-@if (TempData["ClassSuccess"] != null)
-{
-    <div class="alert alert-success">@TempData["ClassSuccess"]</div>
-}
-@if (TempData["ClassError"] != null)
-{
-    <div class="alert alert-danger">@TempData["ClassError"]</div>
-}
-
-<form method="get" asp-action="TransferStudents" class="row g-2 align-items-end mb-4">
-    <div class="col-auto">
-        <label class="form-label">From Grade</label>
-        <select name="classId" class="form-select" onchange="this.form.submit()" asp-items="ViewBag.Classes">
-            <option value="">-- Select a grade --</option>
-        </select>
-    </div>
-</form>
-
-@if (sourceClassId == null)
-{
-    <p class="text-muted">Choose a grade above to see its students.</p>
-}
-else if (!Model.Any())
-{
-    <p class="text-muted">No students in this grade.</p>
-}
-else
-{
-    <form method="post" asp-action="TransferStudents">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="sourceClassId" value="@sourceClassId" />
-
-        <div class="row g-2 align-items-end mb-3">
-            <div class="col-auto">
-                <label class="form-label">To Grade</label>
-                <select name="destinationClassId" class="form-select" asp-items="ViewBag.DestinationClasses">
-                    <option value="">-- Select destination grade --</option>
-                </select>
-            </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-primary">Transfer Selected</button>
-            </div>
-        </div>
-
-        <table class="table table-striped table-bordered">
-            <thead class="table-dark">
-                <tr>
-                    <th><input type="checkbox" id="selectAll" checked /></th>
-                    <th>Student</th>
-                    <th>Admission Number</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var student in Model)
-                {
-                    <tr>
-                        <td><input type="checkbox" name="selectedIds" value="@student.Id" class="student-checkbox" checked /></td>
-                        <td>@student.FullName</td>
-                        <td>@student.AdmissionNumber</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </form>
-
+@section Scripts {
     <script>
-        document.getElementById('selectAll').addEventListener('change', function () {
-            document.querySelectorAll('.student-checkbox').forEach(function (cb) {
-                cb.checked = document.getElementById('selectAll').checked;
+        (function () {
+            var form = document.getElementById('transfer-form');
+            if (!form) return;
+
+            var selectAll = document.getElementById('selectAll');
+            var checkboxes = Array.from(document.querySelectorAll('.student-checkbox'));
+            var selectedCount = document.getElementById('selected-count');
+            var clearSelection = document.getElementById('clear-selection');
+
+            function updateSelectionCount() {
+                var selected = checkboxes.filter(function (checkbox) { return checkbox.checked; }).length;
+                selectedCount.textContent = selected + ' selected';
+                selectAll.checked = selected === checkboxes.length;
+                selectAll.indeterminate = selected > 0 && selected < checkboxes.length;
+                clearSelection.textContent = selected ? 'Clear selection' : 'Select all';
+            }
+
+            selectAll.addEventListener('change', function () {
+                checkboxes.forEach(function (checkbox) { checkbox.checked = selectAll.checked; });
+                updateSelectionCount();
             });
-        });
+            checkboxes.forEach(function (checkbox) { checkbox.addEventListener('change', updateSelectionCount); });
+            clearSelection.addEventListener('click', function () {
+                var shouldSelectAll = !checkboxes.some(function (checkbox) { return checkbox.checked; });
+                checkboxes.forEach(function (checkbox) { checkbox.checked = shouldSelectAll; });
+                updateSelectionCount();
+            });
+            form.addEventListener('submit', function () {
+                if (!form.checkValidity()) return;
+                var submitButton = document.querySelector('[data-transfer-submit]');
+                submitButton.disabled = true;
+                submitButton.querySelector('[data-transfer-submit-label]').textContent = 'Transferring students…';
+            });
+        })();
     </script>
 }
