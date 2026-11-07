@@ -15,4 +15,9 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Remove="artifacts\**;publish_output\**" />
+    <None Remove="artifacts\**;publish_output\**" />
+  </ItemGroup>
+
 </Project>
