@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="School Portal">
+  <defs>
+    <linearGradient id="accent" x1="8" y1="6" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2aa77f"/>
+      <stop offset="1" stop-color="#0d6556"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="#14201c"/>
+  <path d="M7 18.8 32 6l25 12.8L32 31.6 7 18.8Z" fill="url(#accent)"/>
+  <path d="M15.5 24.1v14.1c0 5.4 7.4 9.8 16.5 9.8s16.5-4.4 16.5-9.8V24.1L32 32.5 15.5 24.1Z" fill="#F8FFFC"/>
+  <path d="M53.5 19.2v16" stroke="#F8FFFC" stroke-width="3.2" stroke-linecap="round"/>
+  <circle cx="53.5" cy="38.5" r="3.2" fill="#F8FFFC"/>
+  <path d="M25 37.2c2.1 1.6 4.5 2.4 7 2.4s4.9-.8 7-2.4" fill="none" stroke="#187F65" stroke-width="2.8" stroke-linecap="round"/>
+</svg>

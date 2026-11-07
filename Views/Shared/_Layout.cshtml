@@ -2,17 +2,18 @@
 @{
     var fullName = User.FindFirst("FullName")?.Value;
     var roleNames = string.Join(", ", User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value));
-    // "#2563eb" was the platform's original default; schools still on it get the
-    // design's default palette, while a deliberately chosen color keeps branding.
-    var hasCustomTheme = TenantProvider.IsResolved
-        && !string.IsNullOrWhiteSpace(TenantProvider.ThemeColor)
-        && !string.Equals(TenantProvider.ThemeColor, "#2563eb", StringComparison.OrdinalIgnoreCase);
+    // Every resolved school has a selected theme color. Apply it to the shared
+    // design tokens so all portal surfaces respect that school's branding.
+    var hasTenantTheme = TenantProvider.IsResolved
+        && !string.IsNullOrWhiteSpace(TenantProvider.ThemeColor);
 }
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#14201c" />
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" asp-append-version="true" />
     <title>@ViewData["Title"] - @(TenantProvider.SchoolName ?? "SchoolManagement")</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -21,7 +22,7 @@
     <link rel="stylesheet" href="~/lib/choices/choices.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/SchoolManagement.styles.css" asp-append-version="true" />
-    @if (hasCustomTheme)
+    @if (hasTenantTheme)
     {
         <style>
             :root {
