@@ -15,4 +15,10 @@ public class ExamSubmission : ITenantEntity
     public int TotalQuestions { get; set; }
 
     public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
+
+    // Stored per-question answers (submissions made before answers were recorded have none).
+    public ICollection<ExamAnswer> Answers { get; set; } = new List<ExamAnswer>();
+
+    // Requires Answers to be loaded.
+    public bool AwaitingMarking => Answers.Any(a => a.IsCorrect == null);
 }

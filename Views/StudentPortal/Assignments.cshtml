@@ -28,6 +28,7 @@ else
                 <th>Status</th>
                 <th>Grade</th>
                 <th>Feedback</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -36,16 +37,13 @@ else
                 <tr>
                     <td>@(item.Assignment?.Subject?.Name ?? "—")</td>
                     <td>
-                        @item.Assignment?.Title
-                        @if (!string.IsNullOrWhiteSpace(item.Assignment?.Description))
-                        {
-                            <div class="text-muted small">@item.Assignment.Description</div>
-                        }
+                        <a asp-action="Assignment" asp-route-id="@item.AssignmentId" class="fw-semibold">@item.Assignment?.Title</a>
                     </td>
                     <td>@item.Assignment?.DueDate.ToShortDateString()</td>
                     <td><span class="status-badge status-@item.Status.ToLower().Replace(" ", "-")">@item.Status</span></td>
                     <td>@(item.Grade != null ? $"{item.Grade}%" : "—")</td>
                     <td>@(item.Feedback ?? "—")</td>
+                    <td><a class="btn btn-sm btn-primary" asp-action="Assignment" asp-route-id="@item.AssignmentId">Open</a></td>
                 </tr>
             }
         </tbody>

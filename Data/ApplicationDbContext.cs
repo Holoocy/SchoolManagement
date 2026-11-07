@@ -37,6 +37,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Exam> Exams { get; set; }
     public DbSet<ExamQuestion> ExamQuestions { get; set; }
     public DbSet<ExamSubmission> ExamSubmissions { get; set; }
+    public DbSet<ExamAnswer> ExamAnswers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -225,6 +226,24 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(s => s.StudentId)
             .OnDelete(DeleteBehavior.NoAction);
 
+        modelBuilder.Entity<ExamAnswer>()
+            .HasOne(a => a.ExamSubmission)
+            .WithMany(s => s.Answers)
+            .HasForeignKey(a => a.ExamSubmissionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ExamAnswer>()
+            .HasOne(a => a.ExamQuestion)
+            .WithMany()
+            .HasForeignKey(a => a.ExamQuestionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Assignment>()
+            .HasOne(a => a.Class)
+            .WithMany()
+            .HasForeignKey(a => a.ClassId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // Multi-tenancy: every tenant-scoped entity is transparently filtered to the
         // current request's school. Reads can never cross a tenant boundary by accident.
         modelBuilder.Entity<User>().HasQueryFilter(e => e.SchoolId == _tenantProvider.SchoolId);
@@ -246,6 +265,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Exam>().HasQueryFilter(e => e.SchoolId == _tenantProvider.SchoolId);
         modelBuilder.Entity<ExamQuestion>().HasQueryFilter(e => e.SchoolId == _tenantProvider.SchoolId);
         modelBuilder.Entity<ExamSubmission>().HasQueryFilter(e => e.SchoolId == _tenantProvider.SchoolId);
+        modelBuilder.Entity<ExamAnswer>().HasQueryFilter(e => e.SchoolId == _tenantProvider.SchoolId);
 
         // The portal stores calendar dates and local date-times rather than timezone-aware
         // instants. PostgreSQL maps these consistently as timestamp without time zone.

@@ -93,6 +93,57 @@ public class ExamsController : Controller
             .FirstOrDefaultAsync(e => e.Id == examId && e.TeacherId == teacher.Id);
     }
 
+    // Teachers can change an exam while it is a draft, or after an Admin rejects it
+    // (so they can fix it and submit it for approval again).
+    private static bool IsEditable(Exam exam) =>
+        exam.Status == ExamStatus.Draft || exam.Status == ExamStatus.Rejected;
+
+    public async Task<IActionResult> Edit(int id)
+    {
+        var exam = await GetOwnExamAsync(id);
+        if (exam == null) return NotFound();
+        if (!IsEditable(exam))
+        {
+            TempData["ExamError"] = "You can only edit an exam while it is a draft or has been rejected.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        await PopulateSubjectsAndClassesAsync(exam.TeacherId, exam.SubjectId, exam.ClassId);
+        return View(exam);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, string title, int subjectId, int classId)
+    {
+        var exam = await GetOwnExamAsync(id);
+        if (exam == null) return NotFound();
+        if (!IsEditable(exam)) return Forbid();
+
+        var ownsSubject = await _context.SubjectTeachers.AnyAsync(st => st.TeacherId == exam.TeacherId && st.SubjectId == subjectId);
+        var ownsClass = await _context.TeacherClasses.AnyAsync(tc => tc.TeacherId == exam.TeacherId && tc.ClassId == classId);
+        if (string.IsNullOrWhiteSpace(title)) ModelState.AddModelError(nameof(Exam.Title), "The Title field is required.");
+        if (!ownsSubject) ModelState.AddModelError(nameof(Exam.SubjectId), "Select a subject assigned to you.");
+        if (!ownsClass) ModelState.AddModelError(nameof(Exam.ClassId), "Select a grade assigned to you.");
+
+        if (!ModelState.IsValid)
+        {
+            exam.Title = title ?? string.Empty;
+            await PopulateSubjectsAndClassesAsync(exam.TeacherId, subjectId, classId);
+            return View(exam);
+        }
+
+        exam.Title = title.Trim();
+        exam.SubjectId = subjectId;
+        exam.ClassId = classId;
+        await _context.SaveChangesAsync();
+
+        TempData["ExamSuccess"] = exam.Status == ExamStatus.Rejected
+            ? "Exam updated. Submit it for approval again when you're ready."
+            : "Exam updated.";
+        return RedirectToAction(nameof(Questions), new { examId = exam.Id });
+    }
+
     public async Task<IActionResult> Questions(int examId)
     {
         var exam = await GetOwnExamAsync(examId);
@@ -105,9 +156,9 @@ public class ExamsController : Controller
     {
         var exam = await GetOwnExamAsync(examId);
         if (exam == null) return NotFound();
-        if (exam.Status != ExamStatus.Draft)
+        if (!IsEditable(exam))
         {
-            TempData["ExamError"] = "You can only add questions while the exam is still in draft.";
+            TempData["ExamError"] = "You can only add questions while the exam is a draft or has been rejected.";
             return RedirectToAction(nameof(Questions), new { examId });
         }
 
@@ -117,15 +168,17 @@ public class ExamsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddQuestion(ExamQuestion question, string? trueFalseAnswer, string? gapAnswers, IFormFile? attachment)
+    public async Task<IActionResult> AddQuestion(ExamQuestion question, string? trueFalseAnswer, string? gapAnswers,
+        string? markingGuide, IFormFile? attachment)
     {
         var exam = await GetOwnExamAsync(question.ExamId);
         if (exam == null) return NotFound();
-        if (exam.Status != ExamStatus.Draft) return Forbid();
+        if (!IsEditable(exam)) return Forbid();
 
-        ModelState.Remove(nameof(ExamQuestion.Exam));
-        ApplyAnswerKey(question, trueFalseAnswer, gapAnswers);
-        ValidateAttachment(attachment);
+        ClearBindingErrors();
+        ApplyAnswerKey(question, trueFalseAnswer, gapAnswers, markingGuide);
+        var isUpload = question.QuestionType == QuestionTypes.Uploaded;
+        if (isUpload) ValidateAttachment(attachment);
         ValidateQuestion(question, hasAttachment: attachment is { Length: > 0 });
 
         if (!ModelState.IsValid)
@@ -133,13 +186,12 @@ public class ExamsController : Controller
             ViewBag.Exam = exam;
             ViewBag.TrueFalseAnswer = trueFalseAnswer;
             ViewBag.GapAnswers = gapAnswers;
+            ViewBag.MarkingGuide = markingGuide;
             return View(question);
         }
 
-        if (attachment is { Length: > 0 })
-        {
-            question.AttachmentPath = await SaveAttachmentAsync(attachment);
-        }
+        // Only uploaded questions carry a file; other types stand alone.
+        question.AttachmentPath = isUpload ? await SaveAttachmentAsync(attachment!) : null;
 
         _context.Add(question);
         await _context.SaveChangesAsync();
@@ -154,9 +206,9 @@ public class ExamsController : Controller
 
         var exam = await GetOwnExamAsync(question.ExamId);
         if (exam == null) return NotFound();
-        if (exam.Status != ExamStatus.Draft)
+        if (!IsEditable(exam))
         {
-            TempData["ExamError"] = "You can only edit questions while the exam is still in draft.";
+            TempData["ExamError"] = "You can only edit questions while the exam is a draft or has been rejected.";
             return RedirectToAction(nameof(Questions), new { examId = exam.Id });
         }
 
@@ -167,7 +219,7 @@ public class ExamsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> EditQuestion(int id, ExamQuestion question, string? trueFalseAnswer, string? gapAnswers,
-        IFormFile? attachment, bool removeAttachment = false)
+        string? markingGuide, IFormFile? attachment)
     {
         if (id != question.Id) return NotFound();
 
@@ -177,33 +229,36 @@ public class ExamsController : Controller
 
         var exam = await GetOwnExamAsync(existing.ExamId);
         if (exam == null) return NotFound();
-        if (exam.Status != ExamStatus.Draft) return Forbid();
+        if (!IsEditable(exam)) return Forbid();
 
         question.ExamId = existing.ExamId;
         question.AttachmentPath = existing.AttachmentPath;
 
-        ModelState.Remove(nameof(ExamQuestion.Exam));
-        ApplyAnswerKey(question, trueFalseAnswer, gapAnswers);
-        ValidateAttachment(attachment);
-        var keepsAttachment = existing.AttachmentPath != null && !removeAttachment;
-        ValidateQuestion(question, hasAttachment: keepsAttachment || attachment is { Length: > 0 });
+        ClearBindingErrors();
+        ApplyAnswerKey(question, trueFalseAnswer, gapAnswers, markingGuide);
+        var isUpload = question.QuestionType == QuestionTypes.Uploaded;
+        if (isUpload) ValidateAttachment(attachment);
+        ValidateQuestion(question, hasAttachment: attachment is { Length: > 0 } || existing.AttachmentPath != null);
 
         if (!ModelState.IsValid)
         {
             ViewBag.Exam = exam;
             ViewBag.TrueFalseAnswer = trueFalseAnswer;
             ViewBag.GapAnswers = gapAnswers;
+            ViewBag.MarkingGuide = markingGuide;
             return View(question);
         }
 
+        // Only uploaded questions carry a file: a new upload replaces the old one, and
+        // switching to another type drops it.
         var oldAttachment = existing.AttachmentPath;
-        if (attachment is { Length: > 0 })
-        {
-            existing.AttachmentPath = await SaveAttachmentAsync(attachment);
-        }
-        else if (removeAttachment)
+        if (!isUpload)
         {
             existing.AttachmentPath = null;
+        }
+        else if (attachment is { Length: > 0 })
+        {
+            existing.AttachmentPath = await SaveAttachmentAsync(attachment);
         }
 
         existing.QuestionType = question.QuestionType;
@@ -231,7 +286,7 @@ public class ExamsController : Controller
     {
         var exam = await GetOwnExamAsync(examId);
         if (exam == null) return NotFound();
-        if (exam.Status != ExamStatus.Draft) return Forbid();
+        if (!IsEditable(exam)) return Forbid();
 
         var question = await _context.ExamQuestions.FirstOrDefaultAsync(q => q.Id == id && q.ExamId == examId);
         if (question != null)
@@ -247,13 +302,35 @@ public class ExamsController : Controller
 
     // ---------- Question helpers ----------
 
+    // With nullable reference types enabled, MVC treats every non-nullable string on
+    // ExamQuestion as implicitly required. Which fields are actually needed depends on the
+    // question type, so drop those automatic errors and let ValidateQuestion decide.
+    // (Otherwise True/False and Fill-in-the-gap questions fail on the blank, hidden
+    // Option A–D fields and are never saved.)
+    private void ClearBindingErrors()
+    {
+        foreach (var key in new[]
+                 {
+                     nameof(ExamQuestion.Exam), nameof(ExamQuestion.QuestionText), nameof(ExamQuestion.QuestionType),
+                     nameof(ExamQuestion.OptionA), nameof(ExamQuestion.OptionB), nameof(ExamQuestion.OptionC),
+                     nameof(ExamQuestion.OptionD), nameof(ExamQuestion.CorrectOption)
+                 })
+        {
+            ModelState.Remove(key);
+        }
+    }
+
     // Each question type posts its answer in its own field; store it in CorrectOption.
-    private static void ApplyAnswerKey(ExamQuestion question, string? trueFalseAnswer, string? gapAnswers)
+    private static void ApplyAnswerKey(ExamQuestion question, string? trueFalseAnswer, string? gapAnswers, string? markingGuide)
     {
         question.QuestionText = question.QuestionText?.Trim() ?? string.Empty;
 
         switch (question.QuestionType)
         {
+            case QuestionTypes.Uploaded:
+                question.CorrectOption = markingGuide?.Trim() ?? string.Empty;
+                question.OptionA = question.OptionB = question.OptionC = question.OptionD = string.Empty;
+                break;
             case QuestionTypes.TrueFalse:
                 question.CorrectOption = trueFalseAnswer ?? string.Empty;
                 question.OptionA = question.OptionB = question.OptionC = question.OptionD = string.Empty;
@@ -280,9 +357,14 @@ public class ExamsController : Controller
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(question.QuestionText) && !hasAttachment)
+        if (question.QuestionType == QuestionTypes.Uploaded)
         {
-            ModelState.AddModelError(nameof(ExamQuestion.QuestionText), "Type the question, or upload it as an image or PDF.");
+            if (!hasAttachment)
+                ModelState.AddModelError("attachment", "Upload the question as an image or PDF.");
+        }
+        else if (string.IsNullOrWhiteSpace(question.QuestionText))
+        {
+            ModelState.AddModelError(nameof(ExamQuestion.QuestionText), "Type the question.");
         }
 
         switch (question.QuestionType)
@@ -410,12 +492,62 @@ public class ExamsController : Controller
 
         var submissions = await _context.ExamSubmissions
             .Include(s => s.Student)
+            .Include(s => s.Answers)
             .Where(s => s.ExamId == id)
             .OrderByDescending(s => s.Score)
             .ToListAsync();
 
         ViewBag.Exam = exam;
+        ViewBag.CanMark = !User.IsInRole("Admin") || await GetOwnExamAsync(id) != null;
         return View(submissions);
+    }
+
+    // ---------- Teacher: mark written answers to uploaded questions ----------
+
+    public async Task<IActionResult> Mark(int id)
+    {
+        var submission = await LoadSubmissionForMarkingAsync(id);
+        if (submission == null) return NotFound();
+
+        return View(submission);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Mark(int id, Dictionary<int, bool> marks)
+    {
+        var submission = await LoadSubmissionForMarkingAsync(id);
+        if (submission == null) return NotFound();
+
+        foreach (var answer in submission.Answers.Where(a => a.ExamQuestion!.IsManuallyMarked))
+        {
+            if (marks.TryGetValue(answer.Id, out var isCorrect))
+            {
+                answer.IsCorrect = isCorrect;
+            }
+        }
+
+        submission.Score = submission.Answers.Count(a => a.IsCorrect == true);
+        await _context.SaveChangesAsync();
+
+        TempData["ExamSuccess"] = submission.AwaitingMarking
+            ? $"Marks saved for {submission.Student?.FullName}. Some answers still need marking."
+            : $"Marking complete for {submission.Student?.FullName}: {submission.Score} / {submission.TotalQuestions}.";
+        return RedirectToAction(nameof(Results), new { id = submission.ExamId });
+    }
+
+    // Only the teacher who owns the exam can mark its submissions.
+    private async Task<ExamSubmission?> LoadSubmissionForMarkingAsync(int submissionId)
+    {
+        var submission = await _context.ExamSubmissions
+            .Include(s => s.Student)
+            .Include(s => s.Exam).ThenInclude(e => e!.Subject)
+            .Include(s => s.Answers).ThenInclude(a => a.ExamQuestion)
+            .FirstOrDefaultAsync(s => s.Id == submissionId);
+        if (submission == null) return null;
+
+        var exam = await GetOwnExamAsync(submission.ExamId);
+        return exam == null ? null : submission;
     }
 
     public async Task<IActionResult> Notify(int id)

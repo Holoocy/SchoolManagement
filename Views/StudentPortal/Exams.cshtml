@@ -39,7 +39,14 @@ else
                     <td>
                         @if (submissions.TryGetValue(exam.Id, out var submission))
                         {
-                            <span class="status-badge status-done">Score: @submission.Score/@submission.TotalQuestions</span>
+                            if (submission.AwaitingMarking)
+                            {
+                                <span class="status-badge status-pending">Awaiting marking (@submission.Score/@submission.TotalQuestions so far)</span>
+                            }
+                            else
+                            {
+                                <span class="status-badge status-done">Score: @submission.Score/@submission.TotalQuestions</span>
+                            }
                         }
                         else
                         {

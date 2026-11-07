@@ -2,7 +2,7 @@
 
 @{
     ViewData["Title"] = "Exam Questions";
-    var canEdit = Model.Status == "Draft";
+    var canEdit = Model.Status == "Draft" || Model.Status == "Rejected";
 }
 
 <div class="mb-3">
@@ -21,13 +21,24 @@
     <div class="alert alert-danger">@TempData["ExamError"]</div>
 }
 
+@if (Model.Status == "Rejected")
+{
+    <div class="alert alert-danger">
+        <strong>Rejected by Admin@(string.IsNullOrWhiteSpace(Model.RejectionReason) ? "." : ":")</strong> @Model.RejectionReason
+        <div class="small mt-1">Edit the exam or its questions, then submit it for approval again.</div>
+    </div>
+}
+
 @if (!canEdit)
 {
-    <p class="text-muted">Questions can no longer be changed once the exam has been submitted for approval.</p>
+    <p class="text-muted">Questions can no longer be changed while the exam is awaiting approval or after it has been approved.</p>
 }
 else
 {
-    <a class="btn btn-primary mb-3" asp-action="AddQuestion" asp-route-examId="@Model.Id">Add Question</a>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <a class="btn btn-primary" asp-action="AddQuestion" asp-route-examId="@Model.Id">Add Question</a>
+        <a class="btn btn-secondary" asp-action="Edit" asp-route-id="@Model.Id">Edit exam details</a>
+    </div>
 }
 
 @if (!Model.Questions.Any())

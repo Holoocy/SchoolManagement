@@ -11,6 +11,11 @@ public class Assignment : ITenantEntity
     public int? SubjectId { get; set; }
     public Subject? Subject { get; set; }
 
+    // Every student in this grade receives the assignment.
+    [Display(Name = "Grade")]
+    public int? ClassId { get; set; }
+    public Class? Class { get; set; }
+
     [Required]
     [Display(Name = "Title")]
     public string Title { get; set; } = string.Empty;

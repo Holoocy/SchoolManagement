@@ -37,6 +37,7 @@ else
     <thead class="table-dark">
         <tr>
             <th>Subject</th>
+            <th>Grade</th>
             <th>Title</th>
             <th>Due Date</th>
             <th>Status</th>
@@ -65,6 +66,7 @@ else
             }
             <tr>
                 <td>@(item.Subject?.Name ?? "—")</td>
+                <td>@(item.Class?.Name ?? "—")</td>
                 <td>@item.Title</td>
                 <td>@item.DueDate.ToShortDateString()</td>
                 <td><span class="status-badge status-@displayStatus.ToLower().Replace(" ", "-")">@displayStatus</span></td>

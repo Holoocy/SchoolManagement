@@ -51,9 +51,61 @@ public class AssignmentsController : Controller
         return classStudentIds.Union(individualStudentIds).ToList();
     }
 
+    // Teachers may only give assignments to grades assigned to them; Admins to any grade.
+    private async Task<List<int>> GetAllowedClassIdsAsync()
+    {
+        if (User.IsInRole("Admin"))
+        {
+            return await _context.Classes.Select(c => c.Id).ToListAsync();
+        }
+
+        var teacher = await _context.Teachers.FirstOrDefaultAsync(t => t.UserId == CurrentUserId);
+        if (teacher == null) return new List<int>();
+
+        return await _context.TeacherClasses.Where(tc => tc.TeacherId == teacher.Id).Select(tc => tc.ClassId).ToListAsync();
+    }
+
+    private async Task ValidateGradeAsync(int? classId)
+    {
+        if (classId == null)
+        {
+            ModelState.AddModelError(nameof(Assignment.ClassId), "Choose the grade that should receive this assignment.");
+        }
+        else if (!(await GetAllowedClassIdsAsync()).Contains(classId.Value))
+        {
+            ModelState.AddModelError(nameof(Assignment.ClassId), "Choose a grade assigned to you.");
+        }
+    }
+
+    // Give the assignment to every active student currently in its grade. Existing rows
+    // (including students assigned individually and any recorded grades) are kept.
+    private async Task<int> AssignGradeStudentsAsync(Assignment assignment)
+    {
+        if (assignment.ClassId == null) return 0;
+
+        var gradeStudentIds = await _context.Students
+            .Where(s => s.ClassId == assignment.ClassId && s.IsActive)
+            .Select(s => s.Id)
+            .ToListAsync();
+        var alreadyAssigned = (await _context.AssignmentSubmissions
+            .Where(s => s.AssignmentId == assignment.Id)
+            .Select(s => s.StudentId)
+            .ToListAsync()).ToHashSet();
+
+        var added = 0;
+        foreach (var studentId in gradeStudentIds.Where(id => !alreadyAssigned.Contains(id)))
+        {
+            _context.AssignmentSubmissions.Add(new AssignmentSubmission { AssignmentId = assignment.Id, StudentId = studentId });
+            added++;
+        }
+
+        await _context.SaveChangesAsync();
+        return added;
+    }
+
     public async Task<IActionResult> Index()
     {
-        var query = _context.Assignments.Include(a => a.Subject).Include(a => a.Submissions).AsQueryable();
+        var query = _context.Assignments.Include(a => a.Subject).Include(a => a.Class).Include(a => a.Submissions).AsQueryable();
 
         if (User.IsInRole("Teacher") && !User.IsInRole("Admin"))
         {
@@ -72,6 +124,7 @@ public class AssignmentsController : Controller
     public async Task<IActionResult> Create()
     {
         await PopulateSubjectsAsync();
+        await PopulateClassesAsync();
         await PopulateTeacherSubjectMapAsync();
         return View();
     }
@@ -80,16 +133,21 @@ public class AssignmentsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(Assignment assignment)
     {
+        await ValidateGradeAsync(assignment.ClassId);
         if (!ModelState.IsValid || !await CanManageSubjectAsync(assignment.SubjectId))
         {
             if (ModelState.IsValid) ModelState.AddModelError("", "You can only create assignments for subjects assigned to you.");
             await PopulateSubjectsAsync(assignment.SubjectId);
+            await PopulateClassesAsync(assignment.ClassId);
             await PopulateTeacherSubjectMapAsync();
             return View(assignment);
         }
 
         _context.Add(assignment);
         await _context.SaveChangesAsync();
+        var added = await AssignGradeStudentsAsync(assignment);
+
+        TempData["AssignmentSuccess"] = $"\"{assignment.Title}\" created and given to {added} student(s) in the grade.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -102,6 +160,7 @@ public class AssignmentsController : Controller
         if (!await CanManageSubjectAsync(assignment.SubjectId)) return Forbid();
 
         await PopulateSubjectsAsync(assignment.SubjectId);
+        await PopulateClassesAsync(assignment.ClassId);
         return View(assignment);
     }
 
@@ -118,14 +177,21 @@ public class AssignmentsController : Controller
             return Forbid();
         }
 
+        await ValidateGradeAsync(assignment.ClassId);
         if (!ModelState.IsValid)
         {
             await PopulateSubjectsAsync(assignment.SubjectId);
+            await PopulateClassesAsync(assignment.ClassId);
             return View(assignment);
         }
 
         _context.Update(assignment);
         await _context.SaveChangesAsync();
+        var added = await AssignGradeStudentsAsync(assignment);
+
+        TempData["AssignmentSuccess"] = added > 0
+            ? $"\"{assignment.Title}\" updated and given to {added} more student(s) in the grade."
+            : $"\"{assignment.Title}\" updated.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -314,6 +380,14 @@ public class AssignmentsController : Controller
         }
 
         ViewBag.Subjects = new SelectList(await query.OrderBy(s => s.Name).ToListAsync(), "Id", "Name", selectedId);
+    }
+
+    private async Task PopulateClassesAsync(int? selectedId = null)
+    {
+        var allowedIds = await GetAllowedClassIdsAsync();
+        ViewBag.Classes = new SelectList(
+            await _context.Classes.Where(c => allowedIds.Contains(c.Id)).OrderBy(c => c.Name).ToListAsync(),
+            "Id", "Name", selectedId);
     }
 
     private async Task PopulateTeacherSubjectMapAsync()

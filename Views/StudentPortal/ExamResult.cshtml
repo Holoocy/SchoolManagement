@@ -10,10 +10,17 @@
     <p class="page-subtitle">@Model.Exam?.Title &middot; @Model.Exam?.Subject?.Name</p>
 </div>
 
+@if (Model.AwaitingMarking)
+{
+    <div class="alert alert-warning">
+        Your teacher is still marking your written answers. The score below covers the questions marked so far and will update once marking is finished.
+    </div>
+}
+
 <div class="card">
     <div class="card-body text-center">
         <h2 class="display-5 mb-2">@Model.Score / @Model.TotalQuestions</h2>
-        <p class="text-muted">@percentage%</p>
+        <p class="text-muted">@percentage%@(Model.AwaitingMarking ? " (provisional)" : "")</p>
         <p class="text-muted small">Submitted @Model.SubmittedAt.ToLocalTime().ToString("f")</p>
     </div>
 </div>

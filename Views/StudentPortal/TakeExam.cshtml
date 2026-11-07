@@ -53,6 +53,11 @@ else
                                 <label class="form-check-label" for="q@(q.Id)False">False</label>
                             </div>
                             break;
+                        case SchoolManagement.Models.QuestionTypes.Uploaded:
+                            <label class="form-label" for="q@(q.Id)Written">Your answer</label>
+                            <textarea class="form-control" name="answers[@q.Id]" id="q@(q.Id)Written" rows="5" required></textarea>
+                            <div class="form-text">Your teacher will mark this answer.</div>
+                            break;
                         case SchoolManagement.Models.QuestionTypes.FillInTheGap:
                             <label class="form-label" for="q@(q.Id)Gap">Your answer</label>
                             <input class="form-control gap-answer" type="text" name="answers[@q.Id]" id="q@(q.Id)Gap" autocomplete="off" required />

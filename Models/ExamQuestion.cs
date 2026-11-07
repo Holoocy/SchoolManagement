@@ -8,13 +8,16 @@ public static class QuestionTypes
     public const string MultipleChoice = "MultipleChoice";
     public const string TrueFalse = "TrueFalse";
     public const string FillInTheGap = "FillInTheGap";
+    // An uploaded image/PDF question (tables, diagrams) answered in writing and marked by the teacher.
+    public const string Uploaded = "Uploaded";
 
-    public static readonly string[] All = { MultipleChoice, TrueFalse, FillInTheGap };
+    public static readonly string[] All = { MultipleChoice, TrueFalse, FillInTheGap, Uploaded };
 
     public static string Label(string? type) => type switch
     {
         TrueFalse => "True or False",
         FillInTheGap => "Fill in the gap",
+        Uploaded => "Uploaded question",
         _ => "Multiple choice"
     };
 }
@@ -34,7 +37,7 @@ public class ExamQuestion : ITenantEntity
     [Display(Name = "Question")]
     public string QuestionText { get; set; } = string.Empty;
 
-    // Uploaded image or PDF shown with the question (tables, diagrams).
+    // Uploaded image or PDF for "Uploaded question" types (tables, diagrams).
     public string? AttachmentPath { get; set; }
 
     // Options A–D are only used by multiple-choice questions.
@@ -52,8 +55,12 @@ public class ExamQuestion : ITenantEntity
 
     // Multiple choice: "A"–"D". True/False: "True" or "False".
     // Fill in the gap: accepted answers, one per line.
+    // Uploaded question: optional marking guide, shown only to the teacher.
     [Display(Name = "Correct Option")]
     public string CorrectOption { get; set; } = "A";
+
+    // Written answers to uploaded questions are marked by the teacher, not automatically.
+    public bool IsManuallyMarked => QuestionType == QuestionTypes.Uploaded;
 
     public bool HasImageAttachment =>
         AttachmentPath != null && !AttachmentPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
@@ -63,7 +70,7 @@ public class ExamQuestion : ITenantEntity
 
     public bool IsCorrect(string? answer)
     {
-        if (string.IsNullOrWhiteSpace(answer)) return false;
+        if (IsManuallyMarked || string.IsNullOrWhiteSpace(answer)) return false;
 
         return QuestionType switch
         {

@@ -4180,8 +4180,8 @@ button.accept-policy {
 @media (max-width: 575.98px) { .reports-header h1 { font-size: 1.6rem; }.reports-metrics { grid-template-columns: 1fr 1fr; gap: .6rem; }.reports-metric-card { align-items: flex-start; flex-direction: column; gap: .5rem; }.reports-hero-copy, .reports-attendance-score { padding: 1.25rem; }.reports-card-header, .reports-breakdown-section { padding-left: 1rem; padding-right: 1rem; }.reports-card-meta { display: none; }.reports-chart { height: 12rem; gap: .25rem; }.reports-chart-column small { display: none; }.reports-attendance-legend { gap: .5rem; font-size: .61rem; }.reports-empty-state { align-items: flex-start; min-height: 11rem; padding: 1rem; } }
 
 /* ===== Exam questions: type picker, attachments ===== */
-[data-for-type][hidden] { display: none !important; }
-.question-type-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+[data-for-type][hidden], [data-for-type-not][hidden] { display: none !important; }
+.question-type-picker { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
 .question-type-option { display: flex; flex-direction: column; gap: .2rem; height: 100%; padding: .85rem 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); cursor: pointer; transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease; }
 .question-type-option strong { color: var(--color-dark); font-size: .86rem; }
 .question-type-option span { color: var(--color-text-muted); font-size: .75rem; line-height: 1.4; }
@@ -4196,4 +4196,16 @@ button.accept-policy {
 .question-attachment-current img { max-height: 220px; }
 .question-summary .question-attachment img { max-height: 180px; }
 .gap-answer { max-width: 420px; }
-@media (max-width: 767.98px) { .question-type-picker { grid-template-columns: 1fr; } }
+@media (max-width: 1199.98px) { .question-type-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 575.98px) { .question-type-picker { grid-template-columns: 1fr; } }
+
+.written-answer { padding: .75rem 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-light); color: var(--color-dark); }
+
+/* ===== Select dropdowns: never clipped by the card/panel they sit in ===== */
+/* Cards, panels and form cards use overflow:hidden for their rounded corners, which cut
+   off an open Choices dropdown. While a dropdown is open, every container around it in
+   the page content lets it overflow, and the open select is raised above later cards. */
+.content-area :has(> .choices.is-open),
+.content-area :has(.choices.is-open) { overflow: visible !important; }
+.choices.is-open { z-index: 80; }
+.choices__list--dropdown.is-active { z-index: 90; }

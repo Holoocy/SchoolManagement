@@ -57,6 +57,7 @@ else
                         <a class="btn btn-sm btn-outline-secondary" asp-action="Questions" asp-route-examId="@exam.Id">Questions</a>
                         @if (exam.Status == "Draft" || exam.Status == "Rejected")
                         {
+                            <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@exam.Id">Edit</a>
                             <form method="post" asp-action="SubmitForApproval" asp-route-id="@exam.Id" class="d-inline">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="btn btn-sm btn-outline-primary">Submit for Approval</button>

@@ -1,0 +1,51 @@
+@model SchoolManagement.Models.AssignmentSubmission
+
+@{
+    var assignment = Model.Assignment!;
+    ViewData["Title"] = assignment.Title;
+    var overdue = assignment.DueDate.Date < DateTime.Today && Model.Status == "Assigned";
+}
+
+<div class="mb-3">
+    <a asp-action="Assignments" class="btn btn-outline-secondary btn-sm">Back to assignments</a>
+</div>
+
+<div class="page-header">
+    <div class="page-eyebrow">@(assignment.Subject?.Name ?? "Assignment")@(assignment.Class != null ? $" · {assignment.Class.Name}" : "")</div>
+    <h1 class="page-title">@assignment.Title</h1>
+    <p class="page-subtitle">
+        Due @assignment.DueDate.ToString("dddd, d MMMM yyyy")
+        @if (overdue)
+        {
+            <span class="status-badge status-overdue ms-1">Overdue</span>
+        }
+    </p>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header">Instructions</div>
+            <div class="card-body">
+                <div class="question-text">@assignment.Description</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">Your progress</div>
+            <div class="card-body">
+                <dl class="mb-0">
+                    <dt>Status</dt>
+                    <dd><span class="status-badge status-@Model.Status.ToLower().Replace(" ", "-")">@Model.Status</span></dd>
+                    <dt>Submitted</dt>
+                    <dd>@(Model.SubmittedOn?.ToLocalTime().ToString("g") ?? "—")</dd>
+                    <dt>Grade</dt>
+                    <dd>@(Model.Grade != null ? $"{Model.Grade}%" : "Not graded yet")</dd>
+                    <dt>Teacher's feedback</dt>
+                    <dd class="question-text mb-0">@(string.IsNullOrWhiteSpace(Model.Feedback) ? "—" : Model.Feedback)</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>

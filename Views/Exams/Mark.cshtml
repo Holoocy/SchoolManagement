@@ -1,0 +1,88 @@
+@model SchoolManagement.Models.ExamSubmission
+
+@{
+    ViewData["Title"] = "Mark Answers";
+    var written = Model.Answers.Where(a => a.ExamQuestion!.IsManuallyMarked).OrderBy(a => a.ExamQuestionId).ToList();
+    var autoCorrect = Model.Answers.Count(a => !a.ExamQuestion!.IsManuallyMarked && a.IsCorrect == true);
+    var autoTotal = Model.Answers.Count(a => !a.ExamQuestion!.IsManuallyMarked);
+}
+
+<div class="mb-3">
+    <a asp-action="Results" asp-route-id="@Model.ExamId" class="btn btn-outline-secondary btn-sm">Back to results</a>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title">Mark: @Model.Student?.FullName</h1>
+    <p class="page-subtitle">
+        @Model.Exam?.Title &middot; @Model.Exam?.Subject?.Name &middot;
+        Automatically marked: @autoCorrect / @autoTotal &middot; Current score: @Model.Score / @Model.TotalQuestions
+    </p>
+</div>
+
+@if (!written.Any())
+{
+    <p class="empty-state">This submission has no written answers to mark.</p>
+}
+else
+{
+    <form method="post" asp-action="Mark" asp-route-id="@Model.Id">
+        @Html.AntiForgeryToken()
+
+        @{ var number = 0; }
+        @foreach (var answer in written)
+        {
+            number++;
+            var q = answer.ExamQuestion!;
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <h2 class="h6 mb-0">Written question @number</h2>
+                        @if (answer.IsCorrect == null)
+                        {
+                            <span class="status-badge status-pending">Not marked</span>
+                        }
+                        else
+                        {
+                            <span class="status-badge @(answer.IsCorrect == true ? "status-completed" : "status-rejected")">@(answer.IsCorrect == true ? "Correct" : "Incorrect")</span>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(q.QuestionText))
+                    {
+                        <p class="question-text">@q.QuestionText</p>
+                    }
+                    @if (q.AttachmentPath != null)
+                    {
+                        <div class="question-attachment">
+                            @if (q.HasImageAttachment)
+                            {
+                                <a href="@q.AttachmentPath" target="_blank" rel="noopener"><img src="@q.AttachmentPath" alt="Question @number" /></a>
+                            }
+                            else
+                            {
+                                <a href="@q.AttachmentPath" target="_blank" rel="noopener">Open question PDF</a>
+                            }
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(q.CorrectOption))
+                    {
+                        <div class="alert alert-info question-text mb-3"><strong>Marking guide:</strong> @q.CorrectOption</div>
+                    }
+
+                    <div class="form-label">Student's answer</div>
+                    <div class="written-answer question-text">@(string.IsNullOrWhiteSpace(answer.AnswerText) ? "(no answer)" : answer.AnswerText)</div>
+
+                    <div class="btn-group mt-3" role="group" aria-label="Mark for written question @number">
+                        <input type="radio" class="btn-check" name="marks[@answer.Id]" id="m@(answer.Id)Correct" value="true" autocomplete="off" checked="@(answer.IsCorrect == true)" />
+                        <label class="btn btn-outline-secondary" for="m@(answer.Id)Correct">Correct (1 mark)</label>
+                        <input type="radio" class="btn-check" name="marks[@answer.Id]" id="m@(answer.Id)Wrong" value="false" autocomplete="off" checked="@(answer.IsCorrect == false)" />
+                        <label class="btn btn-outline-secondary" for="m@(answer.Id)Wrong">Incorrect (0)</label>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <button type="submit" class="btn btn-primary">Save marks</button>
+    </form>
+}

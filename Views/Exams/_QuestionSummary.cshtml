@@ -23,6 +23,13 @@
 
     @switch (Model.QuestionType)
     {
+        case QuestionTypes.Uploaded:
+            <div class="small text-muted">Written answer — marked by the teacher.</div>
+            @if (!string.IsNullOrWhiteSpace(Model.CorrectOption))
+            {
+                <div class="small text-success question-text">Marking guide: @Model.CorrectOption</div>
+            }
+            break;
         case QuestionTypes.TrueFalse:
             <div class="small text-success">Correct: @Model.CorrectOption</div>
             break;

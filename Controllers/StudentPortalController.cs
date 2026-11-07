@@ -55,6 +55,8 @@ public class StudentPortalController : Controller
         var student = await _context.Students.FirstOrDefaultAsync(s => s.UserId == CurrentUserId);
         if (student == null) return View(new List<Models.AssignmentSubmission>());
 
+        await EnsureGradeAssignmentsAsync(student);
+
         var submissions = await _context.AssignmentSubmissions
             .Include(s => s.Assignment).ThenInclude(a => a!.Subject)
             .Where(s => s.StudentId == student.Id)
@@ -62,6 +64,43 @@ public class StudentPortalController : Controller
             .ToListAsync();
 
         return View(submissions);
+    }
+
+    public async Task<IActionResult> Assignment(int id)
+    {
+        var student = await _context.Students.FirstOrDefaultAsync(s => s.UserId == CurrentUserId);
+        if (student == null) return Forbid();
+
+        await EnsureGradeAssignmentsAsync(student);
+
+        // Students can only open assignments given to them (individually or through their grade).
+        var submission = await _context.AssignmentSubmissions
+            .Include(s => s.Assignment).ThenInclude(a => a!.Subject)
+            .Include(s => s.Assignment).ThenInclude(a => a!.Class)
+            .FirstOrDefaultAsync(s => s.AssignmentId == id && s.StudentId == student.Id);
+        if (submission == null) return NotFound();
+
+        return View(submission);
+    }
+
+    // Assignments are given to a whole grade. Students who joined the grade after an
+    // assignment was created get it the next time they open their assignments.
+    private async Task EnsureGradeAssignmentsAsync(Student student)
+    {
+        if (student.ClassId == null) return;
+
+        var missingAssignmentIds = await _context.Assignments
+            .Where(a => a.ClassId == student.ClassId
+                        && !a.Submissions.Any(s => s.StudentId == student.Id))
+            .Select(a => a.Id)
+            .ToListAsync();
+        if (!missingAssignmentIds.Any()) return;
+
+        foreach (var assignmentId in missingAssignmentIds)
+        {
+            _context.AssignmentSubmissions.Add(new AssignmentSubmission { AssignmentId = assignmentId, StudentId = student.Id });
+        }
+        await _context.SaveChangesAsync();
     }
 
     public async Task<IActionResult> Attendance()
@@ -118,6 +157,7 @@ public class StudentPortalController : Controller
 
         var examIds = exams.Select(e => e.Id).ToList();
         var mySubmissions = await _context.ExamSubmissions
+            .Include(s => s.Answers)
             .Where(s => s.StudentId == student.Id && examIds.Contains(s.ExamId))
             .ToListAsync();
 
@@ -161,14 +201,28 @@ public class StudentPortalController : Controller
         }
 
         answers ??= new Dictionary<int, string>();
-        var score = exam.Questions.Count(q => answers.TryGetValue(q.Id, out var answer) && q.IsCorrect(answer));
+
+        // Store every answer. Objective questions are marked now; written answers to
+        // uploaded questions stay unmarked (null) until the teacher marks them.
+        var examAnswers = exam.Questions.Select(q =>
+        {
+            answers.TryGetValue(q.Id, out var answer);
+            answer = answer?.Trim() ?? string.Empty;
+            return new ExamAnswer
+            {
+                ExamQuestionId = q.Id,
+                AnswerText = answer,
+                IsCorrect = q.IsManuallyMarked && answer.Length > 0 ? null : q.IsCorrect(answer)
+            };
+        }).ToList();
 
         _context.ExamSubmissions.Add(new ExamSubmission
         {
             ExamId = examId,
             StudentId = student.Id,
-            Score = score,
-            TotalQuestions = exam.Questions.Count
+            Score = examAnswers.Count(a => a.IsCorrect == true),
+            TotalQuestions = exam.Questions.Count,
+            Answers = examAnswers
         });
         await _context.SaveChangesAsync();
 
@@ -182,6 +236,7 @@ public class StudentPortalController : Controller
 
         var submission = await _context.ExamSubmissions
             .Include(s => s.Exam).ThenInclude(e => e!.Subject)
+            .Include(s => s.Answers)
             .FirstOrDefaultAsync(s => s.ExamId == examId && s.StudentId == student.Id);
         if (submission == null) return NotFound();
 

@@ -10,6 +10,8 @@
         ?? (type == QuestionTypes.TrueFalse ? Model.CorrectOption : null);
     var gapAnswers = (string?)ViewBag.GapAnswers
         ?? (type == QuestionTypes.FillInTheGap ? Model.CorrectOption : null);
+    var markingGuide = (string?)ViewBag.MarkingGuide
+        ?? (type == QuestionTypes.Uploaded ? Model.CorrectOption : null);
 }
 
 <div class="entity-form-page">
@@ -17,7 +19,7 @@
         <div>
             <p class="entity-form-eyebrow">@exam.Title</p>
             <h1>@(isEdit ? "Edit question" : "Add a question")</h1>
-            <p>Choose the question type, write the question (or upload it), then set the correct answer.</p>
+            <p>Choose the question type, then fill in the question and its answer.</p>
         </div>
         <a asp-action="Questions" asp-route-examId="@exam.Id" class="entity-form-back-link">← Back to questions</a>
     </header>
@@ -45,6 +47,7 @@
                         {
                             QuestionTypes.TrueFalse => "Students choose True or False.",
                             QuestionTypes.FillInTheGap => "Students type the missing word or phrase.",
+                            QuestionTypes.Uploaded => "Upload an image or PDF (tables, diagrams). Students write an answer you mark.",
                             _ => "Students pick one of four options (A–D)."
                         })</span>
                     </label>
@@ -56,37 +59,37 @@
         <section class="entity-form-section" aria-labelledby="question-body-heading">
             <div class="entity-form-section-heading">
                 <span>02</span>
-                <div><h2 id="question-body-heading">Question</h2><p>Type the question, upload it as an image or PDF (for tables and diagrams), or both.</p></div>
+                <div><h2 id="question-body-heading">Question</h2><p>What students will read.</p></div>
             </div>
             <div class="entity-form-grid">
-                <div class="entity-form-field entity-form-field--wide">
-                    <label asp-for="QuestionText" class="form-label"></label>
-                    <textarea asp-for="QuestionText" class="form-control" rows="3"></textarea>
-                    <div class="entity-form-hint" data-for-type="@QuestionTypes.FillInTheGap">Mark the gap with underscores, e.g. "The capital of Nigeria is ______."</div>
-                    <span asp-validation-for="QuestionText" class="field-validation-error"></span>
-                </div>
-                <div class="entity-form-field entity-form-field--wide">
-                    <label for="attachment" class="form-label">Upload question (image or PDF)</label>
+                <div class="entity-form-field entity-form-field--wide" data-for-type="@QuestionTypes.Uploaded">
+                    <label for="attachment" class="form-label">Question file (image or PDF)</label>
                     @if (Model.AttachmentPath != null)
                     {
                         <div class="question-attachment-current">
                             @if (Model.HasImageAttachment)
                             {
-                                <img src="@Model.AttachmentPath" alt="Current question attachment" />
+                                <img src="@Model.AttachmentPath" alt="Current question file" />
                             }
                             else
                             {
                                 <a href="@Model.AttachmentPath" target="_blank" rel="noopener">Open current PDF</a>
                             }
-                            <div class="form-check mt-2">
-                                <input class="form-check-input" type="checkbox" name="removeAttachment" id="removeAttachment" value="true" />
-                                <label class="form-check-label" for="removeAttachment">Remove this attachment</label>
-                            </div>
                         </div>
                     }
                     <input type="file" name="attachment" id="attachment" class="form-control" accept="image/png,image/jpeg,image/gif,image/webp,application/pdf" />
                     <div class="entity-form-hint">PNG, JPG, GIF, WebP or PDF, up to 10 MB.@(Model.AttachmentPath != null ? " Choosing a new file replaces the current one." : "")</div>
                     <span class="field-validation-error">@Html.ValidationMessage("attachment")</span>
+                </div>
+                <div class="entity-form-field entity-form-field--wide">
+                    <label asp-for="QuestionText" class="form-label">
+                        <span data-for-type="@QuestionTypes.Uploaded">Instructions (optional)</span>
+                        <span data-for-type-not="@QuestionTypes.Uploaded">Question</span>
+                    </label>
+                    <textarea asp-for="QuestionText" class="form-control" rows="3"></textarea>
+                    <div class="entity-form-hint" data-for-type="@QuestionTypes.FillInTheGap">Mark the gap with underscores, e.g. "The capital of Nigeria is ______."</div>
+                    <div class="entity-form-hint" data-for-type="@QuestionTypes.Uploaded">E.g. "Study the table and explain the trend." Shown above the uploaded file.</div>
+                    <span asp-validation-for="QuestionText" class="field-validation-error"></span>
                 </div>
             </div>
         </section>
@@ -135,10 +138,18 @@
                     <span class="field-validation-error">@Html.ValidationMessage("gapAnswers")</span>
                 </div>
             </div>
+
+            <div class="entity-form-grid" data-for-type="@QuestionTypes.Uploaded">
+                <div class="entity-form-field entity-form-field--wide">
+                    <label for="markingGuide" class="form-label">Marking guide (optional)</label>
+                    <textarea name="markingGuide" id="markingGuide" class="form-control" rows="3">@markingGuide</textarea>
+                    <div class="entity-form-hint">Students write their answer; you mark it after they submit. This guide is only shown to you while marking.</div>
+                </div>
+            </div>
         </section>
 
         <footer class="entity-form-actions">
-            <span>@(isEdit ? "Changes apply while the exam is still in draft." : "You can edit questions until the exam is submitted for approval.")</span>
+            <span>You can change questions while the exam is a draft or after it has been rejected.</span>
             <div>
                 <a asp-action="Questions" asp-route-examId="@exam.Id" class="btn btn-light">Cancel</a>
                 <button type="submit" class="btn btn-primary">@(isEdit ? "Save changes" : "Save question")</button>
@@ -155,6 +166,9 @@
             var type = checked ? checked.value : '@QuestionTypes.MultipleChoice';
             document.querySelectorAll('[data-for-type]').forEach(function (el) {
                 el.hidden = el.getAttribute('data-for-type') !== type;
+            });
+            document.querySelectorAll('[data-for-type-not]').forEach(function (el) {
+                el.hidden = el.getAttribute('data-for-type-not') === type;
             });
         }
         document.querySelectorAll('input[name="QuestionType"]').forEach(function (r) {
