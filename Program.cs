@@ -4,14 +4,19 @@ using Microsoft.EntityFrameworkCore;
 using SchoolManagement.Data;
 using SchoolManagement.Services;
 
+// The application stores calendar-style dates and local date-times. Npgsql's
+// legacy timestamp behavior keeps existing DateTime values compatible with the
+// PostgreSQL timestamp mapping configured in ApplicationDbContext.
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Server=localhost;Database=SchoolManagementDb;Trusted_Connection=True;TrustServerCertificate=True";
+    ?? "Host=localhost;Database=SchoolManagementDb;Username=postgres;Password=postgres";
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseNpgsql(connectionString));
 
 builder.Services.AddScoped<ITenantProvider, TenantProvider>();
 

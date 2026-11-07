@@ -247,6 +247,19 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<ExamQuestion>().HasQueryFilter(e => e.SchoolId == _tenantProvider.SchoolId);
         modelBuilder.Entity<ExamSubmission>().HasQueryFilter(e => e.SchoolId == _tenantProvider.SchoolId);
 
+        // The portal stores calendar dates and local date-times rather than timezone-aware
+        // instants. PostgreSQL maps these consistently as timestamp without time zone.
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(DateTime) || property.ClrType == typeof(DateTime?))
+                {
+                    property.SetColumnType("timestamp without time zone");
+                }
+            }
+        }
+
     }
 
     public override int SaveChanges()
