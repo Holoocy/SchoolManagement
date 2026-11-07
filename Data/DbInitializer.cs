@@ -16,6 +16,13 @@ public static class DbInitializer
         // takes effect on a brand-new, empty database (a no-op if one already exists).
         await context.Database.EnsureCreatedAsync();
 
+        // EnsureCreated never alters an existing database, so columns added to the model
+        // after the first deployment are applied here. Each statement is idempotent.
+        await context.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"ExamQuestions\" ADD COLUMN IF NOT EXISTS \"QuestionType\" text NOT NULL DEFAULT 'MultipleChoice';");
+        await context.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"ExamQuestions\" ADD COLUMN IF NOT EXISTS \"AttachmentPath\" text NULL;");
+
         // Seed a default school + its first Admin account, but only on a first-ever run.
         var defaultSchool = await context.Schools.FirstOrDefaultAsync(s => s.Slug == "heavens-gate-academy");
         if (defaultSchool == null)

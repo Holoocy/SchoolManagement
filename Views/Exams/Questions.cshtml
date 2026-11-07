@@ -41,13 +41,7 @@ else
         {
             <li class="list-group-item">
                 <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="fw-bold">@q.QuestionText</div>
-                        <div class="small text-muted">
-                            A. @q.OptionA &nbsp; B. @q.OptionB &nbsp; C. @q.OptionC &nbsp; D. @q.OptionD
-                        </div>
-                        <div class="small text-success">Correct: Option @q.CorrectOption</div>
-                    </div>
+                    <partial name="_QuestionSummary" model="q" />
                     @if (canEdit)
                     {
                         <div class="text-nowrap">

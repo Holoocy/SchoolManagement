@@ -12,10 +12,15 @@ namespace SchoolManagement.Controllers;
 public class ExamsController : Controller
 {
     private readonly ApplicationDbContext _context;
+    private readonly IWebHostEnvironment _environment;
 
-    public ExamsController(ApplicationDbContext context)
+    private const long MaxAttachmentBytes = 10 * 1024 * 1024;
+    private static readonly string[] AllowedAttachmentExtensions = { ".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf" };
+
+    public ExamsController(ApplicationDbContext context, IWebHostEnvironment environment)
     {
         _context = context;
+        _environment = environment;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -112,17 +117,28 @@ public class ExamsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddQuestion(ExamQuestion question)
+    public async Task<IActionResult> AddQuestion(ExamQuestion question, string? trueFalseAnswer, string? gapAnswers, IFormFile? attachment)
     {
         var exam = await GetOwnExamAsync(question.ExamId);
         if (exam == null) return NotFound();
         if (exam.Status != ExamStatus.Draft) return Forbid();
 
         ModelState.Remove(nameof(ExamQuestion.Exam));
+        ApplyAnswerKey(question, trueFalseAnswer, gapAnswers);
+        ValidateAttachment(attachment);
+        ValidateQuestion(question, hasAttachment: attachment is { Length: > 0 });
+
         if (!ModelState.IsValid)
         {
             ViewBag.Exam = exam;
+            ViewBag.TrueFalseAnswer = trueFalseAnswer;
+            ViewBag.GapAnswers = gapAnswers;
             return View(question);
+        }
+
+        if (attachment is { Length: > 0 })
+        {
+            question.AttachmentPath = await SaveAttachmentAsync(attachment);
         }
 
         _context.Add(question);
@@ -150,23 +166,61 @@ public class ExamsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> EditQuestion(int id, ExamQuestion question)
+    public async Task<IActionResult> EditQuestion(int id, ExamQuestion question, string? trueFalseAnswer, string? gapAnswers,
+        IFormFile? attachment, bool removeAttachment = false)
     {
         if (id != question.Id) return NotFound();
 
-        var exam = await GetOwnExamAsync(question.ExamId);
+        // Load the stored question so its exam (and existing attachment) come from the database, not the form.
+        var existing = await _context.ExamQuestions.FirstOrDefaultAsync(q => q.Id == id);
+        if (existing == null) return NotFound();
+
+        var exam = await GetOwnExamAsync(existing.ExamId);
         if (exam == null) return NotFound();
         if (exam.Status != ExamStatus.Draft) return Forbid();
 
+        question.ExamId = existing.ExamId;
+        question.AttachmentPath = existing.AttachmentPath;
+
         ModelState.Remove(nameof(ExamQuestion.Exam));
+        ApplyAnswerKey(question, trueFalseAnswer, gapAnswers);
+        ValidateAttachment(attachment);
+        var keepsAttachment = existing.AttachmentPath != null && !removeAttachment;
+        ValidateQuestion(question, hasAttachment: keepsAttachment || attachment is { Length: > 0 });
+
         if (!ModelState.IsValid)
         {
             ViewBag.Exam = exam;
+            ViewBag.TrueFalseAnswer = trueFalseAnswer;
+            ViewBag.GapAnswers = gapAnswers;
             return View(question);
         }
 
-        _context.Update(question);
+        var oldAttachment = existing.AttachmentPath;
+        if (attachment is { Length: > 0 })
+        {
+            existing.AttachmentPath = await SaveAttachmentAsync(attachment);
+        }
+        else if (removeAttachment)
+        {
+            existing.AttachmentPath = null;
+        }
+
+        existing.QuestionType = question.QuestionType;
+        existing.QuestionText = question.QuestionText;
+        existing.OptionA = question.OptionA;
+        existing.OptionB = question.OptionB;
+        existing.OptionC = question.OptionC;
+        existing.OptionD = question.OptionD;
+        existing.CorrectOption = question.CorrectOption;
+
         await _context.SaveChangesAsync();
+
+        if (oldAttachment != null && oldAttachment != existing.AttachmentPath)
+        {
+            DeleteAttachmentFile(oldAttachment);
+        }
+
         TempData["ExamSuccess"] = "Question updated.";
         return RedirectToAction(nameof(Questions), new { examId = exam.Id });
     }
@@ -182,11 +236,114 @@ public class ExamsController : Controller
         var question = await _context.ExamQuestions.FirstOrDefaultAsync(q => q.Id == id && q.ExamId == examId);
         if (question != null)
         {
+            var attachmentPath = question.AttachmentPath;
             _context.ExamQuestions.Remove(question);
             await _context.SaveChangesAsync();
+            if (attachmentPath != null) DeleteAttachmentFile(attachmentPath);
         }
 
         return RedirectToAction(nameof(Questions), new { examId });
+    }
+
+    // ---------- Question helpers ----------
+
+    // Each question type posts its answer in its own field; store it in CorrectOption.
+    private static void ApplyAnswerKey(ExamQuestion question, string? trueFalseAnswer, string? gapAnswers)
+    {
+        question.QuestionText = question.QuestionText?.Trim() ?? string.Empty;
+
+        switch (question.QuestionType)
+        {
+            case QuestionTypes.TrueFalse:
+                question.CorrectOption = trueFalseAnswer ?? string.Empty;
+                question.OptionA = question.OptionB = question.OptionC = question.OptionD = string.Empty;
+                break;
+            case QuestionTypes.FillInTheGap:
+                question.CorrectOption = string.Join("\n", (gapAnswers ?? string.Empty)
+                    .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+                question.OptionA = question.OptionB = question.OptionC = question.OptionD = string.Empty;
+                break;
+            default:
+                question.OptionA = question.OptionA?.Trim() ?? string.Empty;
+                question.OptionB = question.OptionB?.Trim() ?? string.Empty;
+                question.OptionC = question.OptionC?.Trim() ?? string.Empty;
+                question.OptionD = question.OptionD?.Trim() ?? string.Empty;
+                break;
+        }
+    }
+
+    private void ValidateQuestion(ExamQuestion question, bool hasAttachment)
+    {
+        if (!QuestionTypes.All.Contains(question.QuestionType))
+        {
+            ModelState.AddModelError(nameof(ExamQuestion.QuestionType), "Choose a question type.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(question.QuestionText) && !hasAttachment)
+        {
+            ModelState.AddModelError(nameof(ExamQuestion.QuestionText), "Type the question, or upload it as an image or PDF.");
+        }
+
+        switch (question.QuestionType)
+        {
+            case QuestionTypes.MultipleChoice:
+                if (string.IsNullOrWhiteSpace(question.OptionA)) ModelState.AddModelError(nameof(ExamQuestion.OptionA), "Option A is required.");
+                if (string.IsNullOrWhiteSpace(question.OptionB)) ModelState.AddModelError(nameof(ExamQuestion.OptionB), "Option B is required.");
+                if (string.IsNullOrWhiteSpace(question.OptionC)) ModelState.AddModelError(nameof(ExamQuestion.OptionC), "Option C is required.");
+                if (string.IsNullOrWhiteSpace(question.OptionD)) ModelState.AddModelError(nameof(ExamQuestion.OptionD), "Option D is required.");
+                if (!new[] { "A", "B", "C", "D" }.Contains(question.CorrectOption))
+                    ModelState.AddModelError(nameof(ExamQuestion.CorrectOption), "Choose the correct option.");
+                break;
+            case QuestionTypes.TrueFalse:
+                if (question.CorrectOption != "True" && question.CorrectOption != "False")
+                    ModelState.AddModelError("trueFalseAnswer", "Choose whether the statement is True or False.");
+                break;
+            case QuestionTypes.FillInTheGap:
+                if (string.IsNullOrWhiteSpace(question.CorrectOption))
+                    ModelState.AddModelError("gapAnswers", "Enter at least one accepted answer.");
+                break;
+        }
+    }
+
+    private void ValidateAttachment(IFormFile? attachment)
+    {
+        if (attachment is not { Length: > 0 }) return;
+
+        var extension = Path.GetExtension(attachment.FileName).ToLowerInvariant();
+        if (!AllowedAttachmentExtensions.Contains(extension))
+        {
+            ModelState.AddModelError("attachment", "Upload an image (PNG, JPG, GIF, WebP) or a PDF.");
+        }
+        else if (attachment.Length > MaxAttachmentBytes)
+        {
+            ModelState.AddModelError("attachment", "The file must be 10 MB or smaller.");
+        }
+    }
+
+    private async Task<string> SaveAttachmentAsync(IFormFile attachment)
+    {
+        var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "exams");
+        Directory.CreateDirectory(uploadsFolder);
+
+        var fileName = $"{Guid.NewGuid()}{Path.GetExtension(attachment.FileName).ToLowerInvariant()}";
+        var filePath = Path.Combine(uploadsFolder, fileName);
+        await using var stream = new FileStream(filePath, FileMode.Create);
+        await attachment.CopyToAsync(stream);
+
+        return $"/uploads/exams/{fileName}";
+    }
+
+    private void DeleteAttachmentFile(string attachmentPath)
+    {
+        // Only ever delete files inside uploads/exams.
+        if (!attachmentPath.StartsWith("/uploads/exams/", StringComparison.Ordinal)) return;
+
+        var fullPath = Path.Combine(_environment.WebRootPath, "uploads", "exams", Path.GetFileName(attachmentPath));
+        if (System.IO.File.Exists(fullPath))
+        {
+            System.IO.File.Delete(fullPath);
+        }
     }
 
     [HttpPost]

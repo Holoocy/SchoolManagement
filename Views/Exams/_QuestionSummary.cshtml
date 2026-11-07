@@ -1,0 +1,39 @@
+@model SchoolManagement.Models.ExamQuestion
+@using SchoolManagement.Models
+
+<div class="question-summary">
+    <span class="status-badge status-assigned">@QuestionTypes.Label(Model.QuestionType)</span>
+    @if (!string.IsNullOrWhiteSpace(Model.QuestionText))
+    {
+        <div class="fw-bold mt-1 question-text">@Model.QuestionText</div>
+    }
+    @if (Model.AttachmentPath != null)
+    {
+        <div class="question-attachment">
+            @if (Model.HasImageAttachment)
+            {
+                <a href="@Model.AttachmentPath" target="_blank" rel="noopener"><img src="@Model.AttachmentPath" alt="Question attachment" /></a>
+            }
+            else
+            {
+                <a href="@Model.AttachmentPath" target="_blank" rel="noopener">Open question PDF</a>
+            }
+        </div>
+    }
+
+    @switch (Model.QuestionType)
+    {
+        case QuestionTypes.TrueFalse:
+            <div class="small text-success">Correct: @Model.CorrectOption</div>
+            break;
+        case QuestionTypes.FillInTheGap:
+            <div class="small text-success">Accepted: @string.Join(" · ", Model.AcceptedAnswers)</div>
+            break;
+        default:
+            <div class="small text-muted">
+                A. @Model.OptionA &nbsp; B. @Model.OptionB &nbsp; C. @Model.OptionC &nbsp; D. @Model.OptionD
+            </div>
+            <div class="small text-success">Correct: Option @Model.CorrectOption</div>
+            break;
+    }
+</div>

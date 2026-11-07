@@ -165,13 +165,24 @@ public class TeacherPortalController : Controller
         return View(students);
     }
 
-    public async Task<IActionResult> CreateStudent()
+    public async Task<IActionResult> CreateStudent(int? classId)
     {
         var teacher = await _context.Teachers.FirstOrDefaultAsync(t => t.UserId == CurrentUserId);
         if (teacher == null) return Forbid();
 
-        await PopulateMyClassesAsync(teacher.Id);
-        return View();
+        var classIds = await GetMyClassIdsAsync(teacher.Id);
+        if (!classIds.Any())
+        {
+            TempData["TeacherPortalError"] = "You need a grade assigned to you before you can enroll students. Ask an administrator to assign one.";
+            return RedirectToAction(nameof(Students));
+        }
+
+        // Preselect the grade the teacher was viewing, or their only grade.
+        int? preselected = classId != null && classIds.Contains(classId.Value) ? classId
+            : classIds.Count == 1 ? classIds[0] : null;
+
+        await PopulateMyClassesAsync(teacher.Id, preselected);
+        return View(new Student { ClassId = preselected });
     }
 
     [HttpPost]
@@ -204,7 +215,7 @@ public class TeacherPortalController : Controller
         _context.Add(student);
         await _context.SaveChangesAsync();
         TempData["TeacherPortalSuccess"] = $"{student.FullName} enrolled with admission number {student.AdmissionNumber}.";
-        return RedirectToAction(nameof(Students));
+        return RedirectToAction(nameof(Students), new { classId = student.ClassId });
     }
 
     public async Task<IActionResult> TransferStudent(int? id)

@@ -24,11 +24,7 @@ else
         @foreach (var q in Model.Questions)
         {
             <li class="list-group-item">
-                <div class="fw-bold">@q.QuestionText</div>
-                <div class="small text-muted">
-                    A. @q.OptionA &nbsp; B. @q.OptionB &nbsp; C. @q.OptionC &nbsp; D. @q.OptionD
-                </div>
-                <div class="small text-success">Correct: Option @q.CorrectOption</div>
+                <partial name="_QuestionSummary" model="q" />
             </li>
         }
     </ol>

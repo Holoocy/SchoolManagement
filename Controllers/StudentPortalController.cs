@@ -161,7 +161,7 @@ public class StudentPortalController : Controller
         }
 
         answers ??= new Dictionary<int, string>();
-        var score = exam.Questions.Count(q => answers.TryGetValue(q.Id, out var chosen) && chosen == q.CorrectOption);
+        var score = exam.Questions.Count(q => answers.TryGetValue(q.Id, out var answer) && q.IsCorrect(answer));
 
         _context.ExamSubmissions.Add(new ExamSubmission
         {

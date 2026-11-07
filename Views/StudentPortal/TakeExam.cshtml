@@ -26,23 +26,56 @@ else
             index++;
             <div class="card mb-3">
                 <div class="card-body">
-                    <p class="fw-bold">@index. @q.QuestionText</p>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="answers[@q.Id]" id="q@(q.Id)A" value="A" required />
-                        <label class="form-check-label" for="q@(q.Id)A">A. @q.OptionA</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="answers[@q.Id]" id="q@(q.Id)B" value="B" />
-                        <label class="form-check-label" for="q@(q.Id)B">B. @q.OptionB</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="answers[@q.Id]" id="q@(q.Id)C" value="C" />
-                        <label class="form-check-label" for="q@(q.Id)C">C. @q.OptionC</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="answers[@q.Id]" id="q@(q.Id)D" value="D" />
-                        <label class="form-check-label" for="q@(q.Id)D">D. @q.OptionD</label>
-                    </div>
+                    <p class="fw-bold question-text">@index. @q.QuestionText</p>
+                    @if (q.AttachmentPath != null)
+                    {
+                        <div class="question-attachment">
+                            @if (q.HasImageAttachment)
+                            {
+                                <a href="@q.AttachmentPath" target="_blank" rel="noopener" title="Open full size"><img src="@q.AttachmentPath" alt="Question @index" /></a>
+                            }
+                            else
+                            {
+                                <a href="@q.AttachmentPath" target="_blank" rel="noopener">Open question @index (PDF)</a>
+                            }
+                        </div>
+                    }
+
+                    @switch (q.QuestionType)
+                    {
+                        case SchoolManagement.Models.QuestionTypes.TrueFalse:
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="answers[@q.Id]" id="q@(q.Id)True" value="True" required />
+                                <label class="form-check-label" for="q@(q.Id)True">True</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="answers[@q.Id]" id="q@(q.Id)False" value="False" />
+                                <label class="form-check-label" for="q@(q.Id)False">False</label>
+                            </div>
+                            break;
+                        case SchoolManagement.Models.QuestionTypes.FillInTheGap:
+                            <label class="form-label" for="q@(q.Id)Gap">Your answer</label>
+                            <input class="form-control gap-answer" type="text" name="answers[@q.Id]" id="q@(q.Id)Gap" autocomplete="off" required />
+                            break;
+                        default:
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="answers[@q.Id]" id="q@(q.Id)A" value="A" required />
+                                <label class="form-check-label" for="q@(q.Id)A">A. @q.OptionA</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="answers[@q.Id]" id="q@(q.Id)B" value="B" />
+                                <label class="form-check-label" for="q@(q.Id)B">B. @q.OptionB</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="answers[@q.Id]" id="q@(q.Id)C" value="C" />
+                                <label class="form-check-label" for="q@(q.Id)C">C. @q.OptionC</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="answers[@q.Id]" id="q@(q.Id)D" value="D" />
+                                <label class="form-check-label" for="q@(q.Id)D">D. @q.OptionD</label>
+                            </div>
+                            break;
+                    }
                 </div>
             </div>
         }

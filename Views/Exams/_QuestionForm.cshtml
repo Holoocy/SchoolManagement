@@ -1,0 +1,165 @@
+@model SchoolManagement.Models.ExamQuestion
+@using SchoolManagement.Models
+@{
+    var exam = (Exam)ViewBag.Exam;
+    var isEdit = Model.Id > 0;
+    var type = QuestionTypes.All.Contains(Model.QuestionType) ? Model.QuestionType : QuestionTypes.MultipleChoice;
+
+    // Re-shown values after a failed submit, otherwise the stored answer key.
+    var trueFalseAnswer = (string?)ViewBag.TrueFalseAnswer
+        ?? (type == QuestionTypes.TrueFalse ? Model.CorrectOption : null);
+    var gapAnswers = (string?)ViewBag.GapAnswers
+        ?? (type == QuestionTypes.FillInTheGap ? Model.CorrectOption : null);
+}
+
+<div class="entity-form-page">
+    <header class="entity-form-header">
+        <div>
+            <p class="entity-form-eyebrow">@exam.Title</p>
+            <h1>@(isEdit ? "Edit question" : "Add a question")</h1>
+            <p>Choose the question type, write the question (or upload it), then set the correct answer.</p>
+        </div>
+        <a asp-action="Questions" asp-route-examId="@exam.Id" class="entity-form-back-link">← Back to questions</a>
+    </header>
+
+    <form method="post" asp-action="@(isEdit ? "EditQuestion" : "AddQuestion")" enctype="multipart/form-data" class="entity-form-card">
+        <input type="hidden" asp-for="ExamId" />
+        @if (isEdit)
+        {
+            <input type="hidden" asp-for="Id" />
+        }
+        <div asp-validation-summary="ModelOnly" class="entity-form-error-summary" role="alert"></div>
+
+        <section class="entity-form-section" aria-labelledby="question-type-heading">
+            <div class="entity-form-section-heading">
+                <span>01</span>
+                <div><h2 id="question-type-heading">Question type</h2><p>How should students answer this question?</p></div>
+            </div>
+            <div class="question-type-picker" role="radiogroup" aria-label="Question type">
+                @foreach (var t in QuestionTypes.All)
+                {
+                    <input type="radio" class="btn-check" name="QuestionType" id="type-@t" value="@t" autocomplete="off" checked="@(t == type)" />
+                    <label class="question-type-option" for="type-@t">
+                        <strong>@QuestionTypes.Label(t)</strong>
+                        <span>@(t switch
+                        {
+                            QuestionTypes.TrueFalse => "Students choose True or False.",
+                            QuestionTypes.FillInTheGap => "Students type the missing word or phrase.",
+                            _ => "Students pick one of four options (A–D)."
+                        })</span>
+                    </label>
+                }
+            </div>
+            <span asp-validation-for="QuestionType" class="field-validation-error"></span>
+        </section>
+
+        <section class="entity-form-section" aria-labelledby="question-body-heading">
+            <div class="entity-form-section-heading">
+                <span>02</span>
+                <div><h2 id="question-body-heading">Question</h2><p>Type the question, upload it as an image or PDF (for tables and diagrams), or both.</p></div>
+            </div>
+            <div class="entity-form-grid">
+                <div class="entity-form-field entity-form-field--wide">
+                    <label asp-for="QuestionText" class="form-label"></label>
+                    <textarea asp-for="QuestionText" class="form-control" rows="3"></textarea>
+                    <div class="entity-form-hint" data-for-type="@QuestionTypes.FillInTheGap">Mark the gap with underscores, e.g. "The capital of Nigeria is ______."</div>
+                    <span asp-validation-for="QuestionText" class="field-validation-error"></span>
+                </div>
+                <div class="entity-form-field entity-form-field--wide">
+                    <label for="attachment" class="form-label">Upload question (image or PDF)</label>
+                    @if (Model.AttachmentPath != null)
+                    {
+                        <div class="question-attachment-current">
+                            @if (Model.HasImageAttachment)
+                            {
+                                <img src="@Model.AttachmentPath" alt="Current question attachment" />
+                            }
+                            else
+                            {
+                                <a href="@Model.AttachmentPath" target="_blank" rel="noopener">Open current PDF</a>
+                            }
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" name="removeAttachment" id="removeAttachment" value="true" />
+                                <label class="form-check-label" for="removeAttachment">Remove this attachment</label>
+                            </div>
+                        </div>
+                    }
+                    <input type="file" name="attachment" id="attachment" class="form-control" accept="image/png,image/jpeg,image/gif,image/webp,application/pdf" />
+                    <div class="entity-form-hint">PNG, JPG, GIF, WebP or PDF, up to 10 MB.@(Model.AttachmentPath != null ? " Choosing a new file replaces the current one." : "")</div>
+                    <span class="field-validation-error">@Html.ValidationMessage("attachment")</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="entity-form-section entity-form-section--last" aria-labelledby="question-answer-heading">
+            <div class="entity-form-section-heading">
+                <span>03</span>
+                <div><h2 id="question-answer-heading">Answer</h2><p>Set what counts as the correct answer.</p></div>
+            </div>
+
+            <div class="entity-form-grid" data-for-type="@QuestionTypes.MultipleChoice">
+                <div class="entity-form-field"><label asp-for="OptionA" class="form-label"></label><input asp-for="OptionA" class="form-control" /><span asp-validation-for="OptionA" class="field-validation-error"></span></div>
+                <div class="entity-form-field"><label asp-for="OptionB" class="form-label"></label><input asp-for="OptionB" class="form-control" /><span asp-validation-for="OptionB" class="field-validation-error"></span></div>
+                <div class="entity-form-field"><label asp-for="OptionC" class="form-label"></label><input asp-for="OptionC" class="form-control" /><span asp-validation-for="OptionC" class="field-validation-error"></span></div>
+                <div class="entity-form-field"><label asp-for="OptionD" class="form-label"></label><input asp-for="OptionD" class="form-control" /><span asp-validation-for="OptionD" class="field-validation-error"></span></div>
+                <div class="entity-form-field">
+                    <label asp-for="CorrectOption" class="form-label">Correct answer</label>
+                    <select asp-for="CorrectOption" class="form-select">
+                        <option value="A">Option A</option>
+                        <option value="B">Option B</option>
+                        <option value="C">Option C</option>
+                        <option value="D">Option D</option>
+                    </select>
+                    <span asp-validation-for="CorrectOption" class="field-validation-error"></span>
+                </div>
+            </div>
+
+            <div class="entity-form-grid" data-for-type="@QuestionTypes.TrueFalse">
+                <div class="entity-form-field entity-form-field--wide">
+                    <span class="form-label">The statement is</span>
+                    <div class="btn-group" role="group" aria-label="Correct answer">
+                        <input type="radio" class="btn-check" name="trueFalseAnswer" id="tfTrue" value="True" autocomplete="off" checked="@(trueFalseAnswer == "True")" />
+                        <label class="btn btn-outline-secondary" for="tfTrue">True</label>
+                        <input type="radio" class="btn-check" name="trueFalseAnswer" id="tfFalse" value="False" autocomplete="off" checked="@(trueFalseAnswer == "False")" />
+                        <label class="btn btn-outline-secondary" for="tfFalse">False</label>
+                    </div>
+                    <span class="field-validation-error">@Html.ValidationMessage("trueFalseAnswer")</span>
+                </div>
+            </div>
+
+            <div class="entity-form-grid" data-for-type="@QuestionTypes.FillInTheGap">
+                <div class="entity-form-field entity-form-field--wide">
+                    <label for="gapAnswers" class="form-label">Accepted answers</label>
+                    <textarea name="gapAnswers" id="gapAnswers" class="form-control" rows="3">@gapAnswers</textarea>
+                    <div class="entity-form-hint">One answer per line. Marking ignores capital letters, extra spaces and a final full stop.</div>
+                    <span class="field-validation-error">@Html.ValidationMessage("gapAnswers")</span>
+                </div>
+            </div>
+        </section>
+
+        <footer class="entity-form-actions">
+            <span>@(isEdit ? "Changes apply while the exam is still in draft." : "You can edit questions until the exam is submitted for approval.")</span>
+            <div>
+                <a asp-action="Questions" asp-route-examId="@exam.Id" class="btn btn-light">Cancel</a>
+                <button type="submit" class="btn btn-primary">@(isEdit ? "Save changes" : "Save question")</button>
+            </div>
+        </footer>
+    </form>
+</div>
+
+<script>
+    (function () {
+        // Show only the fields that belong to the selected question type.
+        function sync() {
+            var checked = document.querySelector('input[name="QuestionType"]:checked');
+            var type = checked ? checked.value : '@QuestionTypes.MultipleChoice';
+            document.querySelectorAll('[data-for-type]').forEach(function (el) {
+                el.hidden = el.getAttribute('data-for-type') !== type;
+            });
+        }
+        document.querySelectorAll('input[name="QuestionType"]').forEach(function (r) {
+            r.addEventListener('change', sync);
+        });
+        sync();
+    })();
+</script>

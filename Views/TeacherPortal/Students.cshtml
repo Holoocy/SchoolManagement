@@ -12,9 +12,9 @@
         <h2 class="mb-0">My Students</h2>
         <p class="text-muted small mb-0">Students in the grade(s) assigned to you.</p>
     </div>
-    @if (selectedClassId != null)
+    @if (classes.Any())
     {
-        <a class="btn btn-primary" asp-action="CreateStudent">Enroll Student</a>
+        <a class="btn btn-primary" asp-action="CreateStudent" asp-route-classId="@selectedClassId">Enroll Student</a>
     }
 </div>
 
