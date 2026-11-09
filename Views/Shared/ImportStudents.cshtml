@@ -1,0 +1,72 @@
+@model SchoolManagement.Models.StudentImportViewModel
+@using SchoolManagement.Services
+
+@{
+    ViewData["Title"] = "Import Students";
+}
+
+<div class="mb-3">
+    <a asp-controller="@Model.BackController" asp-action="@Model.BackAction" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<h2>Import students from a CSV file</h2>
+<p class="text-muted">Enroll many students at once. Admission numbers are generated automatically, the same as when you add a student by hand.</p>
+
+@if (Model.Errors.Any())
+{
+    <div class="alert alert-danger" role="alert">
+        <strong>No students were imported.</strong> Fix these problems in the file and upload it again:
+        <ul class="import-errors mt-2">
+            @foreach (var error in Model.Errors)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">Upload</div>
+            <div class="card-body">
+                <form method="post" asp-action="ImportStudents" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label for="file" class="form-label">CSV file</label>
+                        <input type="file" name="file" id="file" class="form-control" accept=".csv,text/csv" required />
+                        <div class="form-text">Up to @StudentCsvImporter.MaxRows students and 2 MB per file.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="DefaultClassId" class="form-label">Grade for the whole file@(Model.GradeRequired ? "" : " (optional)")</label>
+                        <select asp-for="DefaultClassId" class="form-select" asp-items="ViewBag.Classes">
+                            <option value="">@(Model.GradeRequired ? "-- Use the Grade column --" : "-- Use the Grade column, or none --")</option>
+                        </select>
+                        <div class="form-text">Used for any row whose Grade column is empty.@(Model.GradeRequired ? " You can only enroll into grades assigned to you." : "")</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Import students</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">File format</div>
+            <div class="card-body">
+                <p>The first row must be the column headings. Then add one student per row.</p>
+                <a class="btn btn-outline-secondary btn-sm mb-3" asp-action="ImportTemplate">Download template</a>
+                <ul class="import-columns mb-2">
+                    <li><code>FirstName</code>, <code>LastName</code>, <code>Email</code>, <code>Address</code> (required)</li>
+                    <li><code>DateOfBirth</code> (required): YYYY-MM-DD or DD/MM/YYYY</li>
+                    <li><code>Gender</code> (required): Male or Female</li>
+                    <li><code>Grade</code>: the grade's name exactly as it appears in the app</li>
+                    <li><code>Phone</code>, <code>EnrollmentDate</code> (defaults to today), <code>AcademicCalendar</code></li>
+                </ul>
+                <p class="text-muted small mb-0">If any row has a problem, nothing is imported and every problem is listed, so you can fix the file and upload it again. Students whose email is already enrolled are reported, not duplicated.</p>
+            </div>
+        </div>
+    </div>
+</div>

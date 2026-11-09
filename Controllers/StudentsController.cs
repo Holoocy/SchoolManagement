@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using SchoolManagement.Data;
 using SchoolManagement.Models;
+using SchoolManagement.Services;
 
 namespace SchoolManagement.Controllers;
 
@@ -12,11 +13,13 @@ public class StudentsController : Controller
 {
     private readonly ApplicationDbContext _context;
     private readonly IWebHostEnvironment _environment;
+    private readonly StudentCsvImporter _importer;
 
-    public StudentsController(ApplicationDbContext context, IWebHostEnvironment environment)
+    public StudentsController(ApplicationDbContext context, IWebHostEnvironment environment, StudentCsvImporter importer)
     {
         _context = context;
         _environment = environment;
+        _importer = importer;
     }
 
     public async Task<IActionResult> Index(string? search)
@@ -70,6 +73,31 @@ public class StudentsController : Controller
         TempData["StudentSuccess"] = $"{student.FullName} enrolled with admission number {student.AdmissionNumber}.";
         return RedirectToAction(nameof(Index));
     }
+
+    public async Task<IActionResult> ImportStudents()
+    {
+        await PopulateClassesAsync();
+        return View(new StudentImportViewModel());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [RequestSizeLimit(StudentCsvImporter.MaxFileBytes + 64 * 1024)]
+    public async Task<IActionResult> ImportStudents(IFormFile? file, int? defaultClassId)
+    {
+        var result = await _importer.ImportAsync(file, allowedClassIds: null, defaultClassId, gradeRequired: false);
+        if (!result.Succeeded)
+        {
+            await PopulateClassesAsync(defaultClassId);
+            return View(new StudentImportViewModel { DefaultClassId = defaultClassId, Errors = result.Errors });
+        }
+
+        TempData["StudentSuccess"] = $"{result.Students.Count} student{(result.Students.Count == 1 ? "" : "s")} imported from the CSV file.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    public IActionResult ImportTemplate() =>
+        File(StudentCsvImporter.TemplateFile(), "text/csv", "students-template.csv");
 
     public async Task<IActionResult> Details(int? id)
     {

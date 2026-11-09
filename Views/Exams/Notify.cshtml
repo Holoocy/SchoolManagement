@@ -1,24 +1,36 @@
 @model SchoolManagement.Models.Exam
 
 @{
-    ViewData["Title"] = "Notify Start Date";
+    ViewData["Title"] = "Exam Schedule";
 }
 
 <div class="mb-3">
     <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
 </div>
 
-<h2>Notify Start Date &mdash; @Model.Title</h2>
-<p class="text-muted">This sends a message with the exam's start date to every student in @Model.Class?.Name and their parents.</p>
+<h2>Exam schedule &mdash; @Model.Title</h2>
+<p class="text-muted">This sends the exam's date, time and duration to every student in @Model.Class?.Name and their parents. They also get an automatic reminder 24 hours before it starts.</p>
+
+@if (TempData["ExamError"] != null)
+{
+    <div class="alert alert-danger">@TempData["ExamError"]</div>
+}
 
 <form method="post" asp-action="Notify" asp-route-id="@Model.Id" style="max-width: 420px;">
     @Html.AntiForgeryToken()
 
     <div class="mb-3">
-        <label for="startDate" class="form-label">Exam Start Date</label>
-        <input type="date" name="startDate" id="startDate" class="form-control" value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" required />
+        <label for="startDate" class="form-label">Start date &amp; time</label>
+        <input type="datetime-local" name="startDate" id="startDate" class="form-control" value="@(Model.StartDate?.ToString("yyyy-MM-ddTHH:mm"))" required />
+        <span asp-validation-for="StartDate" class="field-validation-error"></span>
     </div>
 
-    <button type="submit" class="btn btn-primary">Send Notification</button>
+    <div class="mb-3">
+        <label for="durationMinutes" class="form-label">Duration (minutes)</label>
+        <input type="number" name="durationMinutes" id="durationMinutes" class="form-control" min="5" max="600" value="@Model.DurationMinutes" placeholder="e.g. 60" required />
+        <span asp-validation-for="DurationMinutes" class="field-validation-error"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save and notify</button>
     <a asp-action="Index" class="btn btn-secondary">Cancel</a>
 </form>

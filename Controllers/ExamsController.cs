@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using SchoolManagement.Data;
 using SchoolManagement.Models;
+using SchoolManagement.Services;
 
 namespace SchoolManagement.Controllers;
 
@@ -13,14 +14,16 @@ public class ExamsController : Controller
 {
     private readonly ApplicationDbContext _context;
     private readonly IWebHostEnvironment _environment;
+    private readonly ISchoolClock _clock;
 
     private const long MaxAttachmentBytes = 10 * 1024 * 1024;
     private static readonly string[] AllowedAttachmentExtensions = { ".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf" };
 
-    public ExamsController(ApplicationDbContext context, IWebHostEnvironment environment)
+    public ExamsController(ApplicationDbContext context, IWebHostEnvironment environment, ISchoolClock clock)
     {
         _context = context;
         _environment = environment;
+        _clock = clock;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -65,6 +68,8 @@ public class ExamsController : Controller
         if (!ownsSubject) ModelState.AddModelError(nameof(Exam.SubjectId), "Select a subject assigned to you.");
         if (!ownsClass) ModelState.AddModelError(nameof(Exam.ClassId), "Select a grade assigned to you.");
 
+        ValidateSchedule(exam.StartDate, exam.DurationMinutes, mustBeFuture: true);
+
         ModelState.Remove(nameof(Exam.Status));
         ModelState.Remove(nameof(Exam.TeacherId));
 
@@ -76,6 +81,7 @@ public class ExamsController : Controller
 
         exam.TeacherId = teacher.Id;
         exam.Status = ExamStatus.Draft;
+        exam.ReminderSentAt = null;
 
         _context.Add(exam);
         await _context.SaveChangesAsync();
@@ -114,7 +120,7 @@ public class ExamsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, string title, int subjectId, int classId)
+    public async Task<IActionResult> Edit(int id, string title, int subjectId, int classId, DateTime? startDate, int? durationMinutes)
     {
         var exam = await GetOwnExamAsync(id);
         if (exam == null) return NotFound();
@@ -125,10 +131,14 @@ public class ExamsController : Controller
         if (string.IsNullOrWhiteSpace(title)) ModelState.AddModelError(nameof(Exam.Title), "The Title field is required.");
         if (!ownsSubject) ModelState.AddModelError(nameof(Exam.SubjectId), "Select a subject assigned to you.");
         if (!ownsClass) ModelState.AddModelError(nameof(Exam.ClassId), "Select a grade assigned to you.");
+        var scheduleChanged = startDate != exam.StartDate;
+        ValidateSchedule(startDate, durationMinutes, mustBeFuture: scheduleChanged);
 
         if (!ModelState.IsValid)
         {
             exam.Title = title ?? string.Empty;
+            exam.StartDate = startDate;
+            exam.DurationMinutes = durationMinutes;
             await PopulateSubjectsAndClassesAsync(exam.TeacherId, subjectId, classId);
             return View(exam);
         }
@@ -136,6 +146,9 @@ public class ExamsController : Controller
         exam.Title = title.Trim();
         exam.SubjectId = subjectId;
         exam.ClassId = classId;
+        exam.StartDate = startDate;
+        exam.DurationMinutes = durationMinutes;
+        if (scheduleChanged) exam.ReminderSentAt = null;
         await _context.SaveChangesAsync();
 
         TempData["ExamSuccess"] = exam.Status == ExamStatus.Rejected
@@ -468,10 +481,20 @@ public class ExamsController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        // Students can only sit a scheduled exam, so it needs a start time and duration
+        // that haven't already passed.
+        if (exam.StartDate == null || exam.DurationMinutes == null || exam.HasEnded(_clock.Now))
+        {
+            TempData["ExamError"] = exam.StartDate == null || exam.DurationMinutes == null
+                ? "Set the exam's date, time and duration before sending it to students."
+                : "This exam's scheduled time has already passed. Set a new date and time first.";
+            return RedirectToAction(nameof(Notify), new { id });
+        }
+
         exam.Status = ExamStatus.Published;
         await _context.SaveChangesAsync();
 
-        TempData["ExamSuccess"] = "Exam sent to students.";
+        TempData["ExamSuccess"] = $"Exam sent to students. It opens {ExamNotices.When(exam)}; students and parents get a reminder 24 hours before.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -514,14 +537,14 @@ public class ExamsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Mark(int id, Dictionary<int, bool> marks)
+    public async Task<IActionResult> Mark(int id, [FromForm(Name = "marks")] Dictionary<int, bool>? marks)
     {
         var submission = await LoadSubmissionForMarkingAsync(id);
         if (submission == null) return NotFound();
 
         foreach (var answer in submission.Answers.Where(a => a.ExamQuestion!.IsManuallyMarked))
         {
-            if (marks.TryGetValue(answer.Id, out var isCorrect))
+            if (marks != null && marks.TryGetValue(answer.Id, out var isCorrect))
             {
                 answer.IsCorrect = isCorrect;
             }
@@ -565,7 +588,7 @@ public class ExamsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Notify(int id, DateTime startDate)
+    public async Task<IActionResult> Notify(int id, DateTime? startDate, int? durationMinutes)
     {
         var exam = await GetOwnExamAsync(id);
         if (exam == null) return NotFound();
@@ -574,11 +597,23 @@ public class ExamsController : Controller
             return Forbid();
         }
 
+        var scheduleChanged = startDate != exam.StartDate;
+        ValidateSchedule(startDate, durationMinutes, mustBeFuture: scheduleChanged);
+        if (!ModelState.IsValid)
+        {
+            exam.StartDate = startDate;
+            exam.DurationMinutes = durationMinutes;
+            return View(exam);
+        }
+
         exam.StartDate = startDate;
+        exam.DurationMinutes = durationMinutes;
+        // A new start time gets its own 24-hour reminder.
+        if (scheduleChanged) exam.ReminderSentAt = null;
 
         var senderName = User.FindFirst("FullName")?.Value ?? User.Identity?.Name ?? "Teacher";
         var subjectLine = $"Exam Notice: {exam.Title}";
-        var body = $"The exam \"{exam.Title}\" ({exam.Subject!.Name}) is scheduled to start on {startDate:MMMM d, yyyy}.";
+        var body = ExamNotices.ScheduleText(exam, "is scheduled to start on");
 
         var studentUserIds = await _context.Students
             .Where(s => s.ClassId == exam.ClassId && s.UserId != null)
@@ -625,8 +660,26 @@ public class ExamsController : Controller
         }
 
         await _context.SaveChangesAsync();
-        TempData["ExamSuccess"] = "Start date notification sent to students and parents.";
+        TempData["ExamSuccess"] = "Exam date and time sent to students and parents.";
         return RedirectToAction(nameof(Index));
+    }
+
+    // Exams need a start date/time (school-local) and a duration. New or changed start
+    // times must be in the future.
+    private void ValidateSchedule(DateTime? startDate, int? durationMinutes, bool mustBeFuture)
+    {
+        ModelState.Remove(nameof(Exam.StartDate));
+        ModelState.Remove(nameof(Exam.DurationMinutes));
+
+        if (startDate == null)
+            ModelState.AddModelError(nameof(Exam.StartDate), "Set the date and time the exam starts.");
+        else if (mustBeFuture && startDate.Value <= _clock.Now)
+            ModelState.AddModelError(nameof(Exam.StartDate), "The start date and time must be in the future.");
+
+        if (durationMinutes == null)
+            ModelState.AddModelError(nameof(Exam.DurationMinutes), "Set how long the exam lasts.");
+        else if (durationMinutes < 5 || durationMinutes > 600)
+            ModelState.AddModelError(nameof(Exam.DurationMinutes), "Duration must be between 5 and 600 minutes.");
     }
 
     private async Task PopulateSubjectsAndClassesAsync(int teacherId, int? selectedSubjectId = null, int? selectedClassId = null)

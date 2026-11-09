@@ -2,11 +2,18 @@
 
 @{
     ViewData["Title"] = "Take Exam";
+    int? secondsLeft = ViewBag.SecondsLeft;
 }
 
 <div class="page-header">
     <h1 class="page-title">@Model.Title</h1>
-    <p class="page-subtitle">@Model.Subject?.Name</p>
+    <p class="page-subtitle">
+        @Model.Subject?.Name
+        @if (Model.DurationMinutes != null)
+        {
+            <span> · @SchoolManagement.Services.ExamNotices.Duration(Model.DurationMinutes.Value)</span>
+        }
+    </p>
 </div>
 
 @if (!Model.Questions.Any())
@@ -15,7 +22,21 @@
 }
 else
 {
-    <form method="post" asp-action="TakeExam" asp-route-examId="@Model.Id">
+    @if (secondsLeft != null)
+    {
+        <div class="exam-timer-wrap">
+            <div class="exam-timer" id="examTimer" role="timer" aria-live="off">
+                <span class="exam-timer-label">Time left</span>
+                <span class="exam-timer-value" id="examTimerValue">--:--</span>
+            </div>
+            <div class="alert alert-warning exam-time-warning" id="examTimeWarning" role="alert" hidden>
+                <button type="button" class="btn-close" aria-label="Close" onclick="this.parentElement.hidden = true"></button>
+                <strong>15 minutes left.</strong> Check your answers and submit before the time runs out. When the time is up, your answers are submitted automatically.
+            </div>
+        </div>
+    }
+
+    <form method="post" asp-action="TakeExam" asp-route-examId="@Model.Id" id="examForm" novalidate>
         @Html.AntiForgeryToken()
 
         @{
@@ -24,7 +45,7 @@ else
         @foreach (var q in Model.Questions)
         {
             index++;
-            <div class="card mb-3">
+            <div class="card mb-3 exam-question" id="question-@index" data-question-number="@index">
                 <div class="card-body">
                     <p class="fw-bold question-text">@index. @q.QuestionText</p>
                     @if (q.AttachmentPath != null)
@@ -45,7 +66,7 @@ else
                     {
                         case SchoolManagement.Models.QuestionTypes.TrueFalse:
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="answers[@q.Id]" id="q@(q.Id)True" value="True" required />
+                                <input class="form-check-input" type="radio" name="answers[@q.Id]" id="q@(q.Id)True" value="True" />
                                 <label class="form-check-label" for="q@(q.Id)True">True</label>
                             </div>
                             <div class="form-check">
@@ -55,16 +76,16 @@ else
                             break;
                         case SchoolManagement.Models.QuestionTypes.Uploaded:
                             <label class="form-label" for="q@(q.Id)Written">Your answer</label>
-                            <textarea class="form-control" name="answers[@q.Id]" id="q@(q.Id)Written" rows="5" required></textarea>
+                            <textarea class="form-control" name="answers[@q.Id]" id="q@(q.Id)Written" rows="5"></textarea>
                             <div class="form-text">Your teacher will mark this answer.</div>
                             break;
                         case SchoolManagement.Models.QuestionTypes.FillInTheGap:
                             <label class="form-label" for="q@(q.Id)Gap">Your answer</label>
-                            <input class="form-control gap-answer" type="text" name="answers[@q.Id]" id="q@(q.Id)Gap" autocomplete="off" required />
+                            <input class="form-control gap-answer" type="text" name="answers[@q.Id]" id="q@(q.Id)Gap" autocomplete="off" />
                             break;
                         default:
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="answers[@q.Id]" id="q@(q.Id)A" value="A" required />
+                                <input class="form-check-input" type="radio" name="answers[@q.Id]" id="q@(q.Id)A" value="A" />
                                 <label class="form-check-label" for="q@(q.Id)A">A. @q.OptionA</label>
                             </div>
                             <div class="form-check">
@@ -85,6 +106,204 @@ else
             </div>
         }
 
-        <button type="submit" class="btn btn-primary">Submit</button>
+        <div class="exam-actions">
+            <button type="button" class="btn btn-outline-secondary" id="examPreviewButton" data-bs-toggle="modal" data-bs-target="#examPreviewModal">Preview answers</button>
+            <span class="exam-actions-progress" id="examProgress"></span>
+            <button type="button" class="btn btn-primary" id="examSubmitButton" data-bs-toggle="modal" data-bs-target="#examConfirmModal">Submit</button>
+        </div>
     </form>
+
+    <div class="modal fade" id="examPreviewModal" tabindex="-1" aria-labelledby="examPreviewTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="examPreviewTitle">Preview your answers</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-2">Select a question to go back to it.</p>
+                    <ol class="exam-preview-list" id="examPreviewList"></ol>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Keep answering</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="examConfirmModal" tabindex="-1" aria-labelledby="examConfirmTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="examConfirmTitle">Submit your exam?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">Are you sure you want to submit?</p>
+                    <p class="mb-0"><strong>If you click "Yes, I'm sure", you cannot go back and change your answers.</strong></p>
+                    <div class="alert alert-warning mt-3 mb-0" id="examUnansweredWarning" hidden></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">No, go back</button>
+                    <button type="button" class="btn btn-primary" id="examConfirmSubmit">Yes, I'm sure</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            var form = document.getElementById('examForm');
+            if (!form) return;
+
+            var questions = Array.prototype.slice.call(form.querySelectorAll('.exam-question'));
+            var submitting = false;
+            var draftKey = 'exam-draft-@Model.Id';
+
+            function answerFor(card) {
+                var checked = card.querySelector('input[type=radio]:checked');
+                if (checked) {
+                    var label = card.querySelector('label[for="' + checked.id + '"]');
+                    return label ? label.textContent.trim() : checked.value;
+                }
+                var field = card.querySelector('input[type=text], textarea');
+                return field ? field.value.trim() : '';
+            }
+
+            function unansweredNumbers() {
+                return questions.filter(function (card) { return !answerFor(card); })
+                    .map(function (card) { return card.getAttribute('data-question-number'); });
+            }
+
+            function updateProgress() {
+                var answered = questions.length - unansweredNumbers().length;
+                document.getElementById('examProgress').textContent = answered + ' of ' + questions.length + ' answered';
+            }
+
+            // Keep a copy of the answers in this browser so a refresh doesn't lose them.
+            function saveDraft() {
+                var data = {};
+                Array.prototype.forEach.call(form.elements, function (el) {
+                    if (!el.name || el.name.indexOf('answers[') !== 0) return;
+                    if (el.type === 'radio') { if (el.checked) data[el.name] = el.value; }
+                    else if (el.value) data[el.name] = el.value;
+                });
+                try { localStorage.setItem(draftKey, JSON.stringify(data)); } catch (e) { }
+            }
+
+            function restoreDraft() {
+                var data;
+                try { data = JSON.parse(localStorage.getItem(draftKey) || '{}'); } catch (e) { data = {}; }
+                Array.prototype.forEach.call(form.elements, function (el) {
+                    if (!el.name || !(el.name in data)) return;
+                    if (el.type === 'radio') el.checked = el.value === data[el.name];
+                    else el.value = data[el.name];
+                });
+            }
+
+            function submitExam() {
+                if (submitting) return;
+                submitting = true;
+                try { localStorage.removeItem(draftKey); } catch (e) { }
+                window.removeEventListener('beforeunload', warnOnLeave);
+                document.getElementById('examSubmitButton').disabled = true;
+                document.getElementById('examPreviewButton').disabled = true;
+                document.getElementById('examConfirmSubmit').disabled = true;
+                form.submit();
+            }
+
+            function warnOnLeave(e) {
+                if (submitting) return;
+                e.preventDefault();
+                e.returnValue = '';
+            }
+
+            restoreDraft();
+            updateProgress();
+            form.addEventListener('input', function () { saveDraft(); updateProgress(); });
+            form.addEventListener('change', function () { saveDraft(); updateProgress(); });
+            form.addEventListener('submit', function (e) { if (!submitting) e.preventDefault(); });
+            window.addEventListener('beforeunload', warnOnLeave);
+
+            // Preview: list every question with the answer given so far.
+            document.getElementById('examPreviewModal').addEventListener('show.bs.modal', function () {
+                var list = document.getElementById('examPreviewList');
+                list.innerHTML = '';
+                questions.forEach(function (card) {
+                    var answer = answerFor(card);
+                    var item = document.createElement('li');
+                    var link = document.createElement('a');
+                    link.href = '#' + card.id;
+                    link.className = 'exam-preview-item' + (answer ? '' : ' is-unanswered');
+                    var text = document.createElement('span');
+                    text.className = 'exam-preview-answer';
+                    text.textContent = answer ? (answer.length > 120 ? answer.slice(0, 120) + '…' : answer) : 'Not answered';
+                    link.appendChild(document.createTextNode('Question ' + card.getAttribute('data-question-number') + ': '));
+                    link.appendChild(text);
+                    link.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        bootstrap.Modal.getInstance(document.getElementById('examPreviewModal')).hide();
+                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        var first = card.querySelector('input, textarea');
+                        if (first) setTimeout(function () { first.focus({ preventScroll: true }); }, 300);
+                    });
+                    item.appendChild(link);
+                    list.appendChild(item);
+                });
+            });
+
+            // Confirm before submitting, and say if anything is unanswered.
+            document.getElementById('examConfirmModal').addEventListener('show.bs.modal', function () {
+                var missing = unansweredNumbers();
+                var warning = document.getElementById('examUnansweredWarning');
+                warning.hidden = missing.length === 0;
+                warning.textContent = missing.length === 0 ? '' :
+                    'You have not answered ' + (missing.length === 1 ? 'question ' : 'questions ') + missing.join(', ') + '.';
+            });
+            document.getElementById('examConfirmSubmit').addEventListener('click', submitExam);
+
+            // Countdown to the end of the exam, with a warning at 15 minutes and an
+            // automatic submit when the time is up.
+            var secondsLeft = @(secondsLeft?.ToString() ?? "null");
+            if (secondsLeft === null) return;
+
+            var deadline = Date.now() + secondsLeft * 1000;
+            var timer = document.getElementById('examTimer');
+            var timerValue = document.getElementById('examTimerValue');
+            var warned = false;
+
+            function format(total) {
+                var h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), s = total % 60;
+                var mm = (h > 0 && m < 10 ? '0' : '') + m, ss = (s < 10 ? '0' : '') + s;
+                return (h > 0 ? h + ':' : '') + mm + ':' + ss;
+            }
+
+            function tick() {
+                var remaining = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+                timerValue.textContent = format(remaining);
+                timer.classList.toggle('is-low', remaining <= 15 * 60);
+                timer.classList.toggle('is-critical', remaining <= 60);
+
+                if (!warned && remaining <= 15 * 60 && remaining > 0) {
+                    warned = true;
+                    var warning = document.getElementById('examTimeWarning');
+                    warning.querySelector('strong').textContent = remaining > 14 * 60 ? '15 minutes left.'
+                        : 'Only ' + Math.ceil(remaining / 60) + ' minute' + (remaining > 60 ? 's' : '') + ' left.';
+                    warning.hidden = false;
+                }
+
+                if (remaining === 0) {
+                    clearInterval(interval);
+                    timerValue.textContent = "Time's up";
+                    document.querySelectorAll('.modal.show').forEach(function (m) { bootstrap.Modal.getInstance(m).hide(); });
+                    submitExam();
+                }
+            }
+
+            var interval = setInterval(tick, 1000);
+            tick();
+        })();
+    </script>
 }

@@ -14,7 +14,10 @@
     </div>
     @if (classes.Any())
     {
-        <a class="btn btn-primary" asp-action="CreateStudent" asp-route-classId="@selectedClassId">Enroll Student</a>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-outline-secondary" asp-action="ImportStudents" asp-route-classId="@selectedClassId">Import CSV</a>
+            <a class="btn btn-primary" asp-action="CreateStudent" asp-route-classId="@selectedClassId">Enroll Student</a>
+        </div>
     }
 </div>
 

@@ -33,6 +33,7 @@ else
                 <th>Title</th>
                 <th>Subject</th>
                 <th>Grade</th>
+                <th>Schedule</th>
                 <th>Questions</th>
                 <th>Status</th>
                 <th></th>
@@ -45,6 +46,17 @@ else
                     <td>@exam.Title</td>
                     <td>@exam.Subject?.Name</td>
                     <td>@exam.Class?.Name</td>
+                    <td class="text-nowrap">
+                        @if (exam.StartDate != null)
+                        {
+                            <div>@exam.StartDate.Value.ToString("ddd d MMM yyyy, h:mm tt")</div>
+                            <div class="text-muted small">@(exam.DurationMinutes != null ? SchoolManagement.Services.ExamNotices.Duration(exam.DurationMinutes.Value) : "No duration set")</div>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Not scheduled</span>
+                        }
+                    </td>
                     <td>@exam.Questions.Count</td>
                     <td>
                         <span class="status-badge status-@exam.Status.ToLower()">@exam.Status</span>
@@ -69,11 +81,11 @@ else
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="btn btn-sm btn-outline-success">Send to Students</button>
                             </form>
-                            <a class="btn btn-sm btn-outline-secondary" asp-action="Notify" asp-route-id="@exam.Id">Notify Start Date</a>
+                            <a class="btn btn-sm btn-outline-secondary" asp-action="Notify" asp-route-id="@exam.Id">Schedule &amp; Notify</a>
                         }
                         @if (exam.Status == "Published")
                         {
-                            <a class="btn btn-sm btn-outline-secondary" asp-action="Notify" asp-route-id="@exam.Id">Notify Start Date</a>
+                            <a class="btn btn-sm btn-outline-secondary" asp-action="Notify" asp-route-id="@exam.Id">Schedule &amp; Notify</a>
                             <a class="btn btn-sm btn-outline-info" asp-action="Results" asp-route-id="@exam.Id">Results</a>
                         }
                     </td>

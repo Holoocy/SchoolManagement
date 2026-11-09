@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SchoolManagement.Data;
 using SchoolManagement.Models;
+using SchoolManagement.Services;
 
 namespace SchoolManagement.Controllers;
 
@@ -11,10 +12,16 @@ namespace SchoolManagement.Controllers;
 public class StudentPortalController : Controller
 {
     private readonly ApplicationDbContext _context;
+    private readonly ISchoolClock _clock;
 
-    public StudentPortalController(ApplicationDbContext context)
+    // Answers posted shortly after the time runs out (the page submits itself at zero)
+    // are still accepted.
+    private static readonly TimeSpan SubmitGracePeriod = TimeSpan.FromMinutes(2);
+
+    public StudentPortalController(ApplicationDbContext context, ISchoolClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -162,6 +169,7 @@ public class StudentPortalController : Controller
             .ToListAsync();
 
         ViewBag.Submissions = mySubmissions.ToDictionary(s => s.ExamId);
+        ViewBag.Now = _clock.Now;
         return View(exams);
     }
 
@@ -180,12 +188,27 @@ public class StudentPortalController : Controller
             return RedirectToAction(nameof(ExamResult), new { examId });
         }
 
+        // The exam can't be opened before its start time or after it has closed.
+        var now = _clock.Now;
+        if (exam.HasNotStarted(now))
+        {
+            TempData["ExamError"] = $"\"{exam.Title}\" opens {ExamNotices.When(exam)}. You can't view it before then.";
+            return RedirectToAction(nameof(Exams));
+        }
+        if (exam.HasEnded(now))
+        {
+            TempData["ExamError"] = $"\"{exam.Title}\" has closed. The time for this exam is over.";
+            return RedirectToAction(nameof(Exams));
+        }
+
+        // Seconds until the exam closes; the page counts down from this.
+        ViewBag.SecondsLeft = exam.EndDate != null ? (int)Math.Ceiling((exam.EndDate.Value - now).TotalSeconds) : (int?)null;
         return View(exam);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> TakeExam(int examId, Dictionary<int, string> answers)
+    public async Task<IActionResult> TakeExam(int examId, [FromForm(Name = "answers")] Dictionary<int, string>? answers)
     {
         var student = await _context.Students.FirstOrDefaultAsync(s => s.UserId == CurrentUserId);
         if (student == null) return Forbid();
@@ -198,6 +221,18 @@ public class StudentPortalController : Controller
         if (alreadySubmitted)
         {
             return RedirectToAction(nameof(ExamResult), new { examId });
+        }
+
+        var now = _clock.Now;
+        if (exam.HasNotStarted(now))
+        {
+            TempData["ExamError"] = $"\"{exam.Title}\" hasn't started yet.";
+            return RedirectToAction(nameof(Exams));
+        }
+        if (exam.EndDate != null && now > exam.EndDate.Value + SubmitGracePeriod)
+        {
+            TempData["ExamError"] = $"\"{exam.Title}\" closed at {exam.EndDate.Value:h:mm tt}, so your answers could not be accepted.";
+            return RedirectToAction(nameof(Exams));
         }
 
         answers ??= new Dictionary<int, string>();

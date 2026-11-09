@@ -3,12 +3,18 @@
 @{
     ViewData["Title"] = "Exam Questions";
     var submissions = (Dictionary<int, SchoolManagement.Models.ExamSubmission>)ViewBag.Submissions;
+    var now = (DateTime)ViewBag.Now;
 }
 
 <div class="page-header">
     <h1 class="page-title">Exam Questions</h1>
     <p class="page-subtitle">Exams available to you</p>
 </div>
+
+@if (TempData["ExamError"] != null)
+{
+    <div class="alert alert-danger">@TempData["ExamError"]</div>
+}
 
 @if (!Model.Any())
 {
@@ -25,7 +31,8 @@ else
             <tr>
                 <th>Subject</th>
                 <th>Title</th>
-                <th>Start Date</th>
+                <th>Starts</th>
+                <th>Duration</th>
                 <th></th>
             </tr>
         </thead>
@@ -35,7 +42,8 @@ else
                 <tr>
                     <td>@exam.Subject?.Name</td>
                     <td>@exam.Title</td>
-                    <td>@(exam.StartDate != null ? exam.StartDate.Value.ToShortDateString() : "—")</td>
+                    <td>@(exam.StartDate != null ? exam.StartDate.Value.ToString("ddd d MMM yyyy, h:mm tt") : "—")</td>
+                    <td>@(exam.DurationMinutes != null ? SchoolManagement.Services.ExamNotices.Duration(exam.DurationMinutes.Value) : "—")</td>
                     <td>
                         @if (submissions.TryGetValue(exam.Id, out var submission))
                         {
@@ -47,6 +55,14 @@ else
                             {
                                 <span class="status-badge status-done">Score: @submission.Score/@submission.TotalQuestions</span>
                             }
+                        }
+                        else if (exam.HasNotStarted(now))
+                        {
+                            <span class="status-badge status-pending">Opens @exam.StartDate!.Value.ToString("d MMM, h:mm tt")</span>
+                        }
+                        else if (exam.HasEnded(now))
+                        {
+                            <span class="status-badge status-overdue">Closed</span>
                         }
                         else
                         {

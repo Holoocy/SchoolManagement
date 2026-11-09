@@ -57,6 +57,11 @@ public static class DbInitializer
                 END IF;
             END $$;");
 
+        await context.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Exams\" ADD COLUMN IF NOT EXISTS \"DurationMinutes\" integer NULL;");
+        await context.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Exams\" ADD COLUMN IF NOT EXISTS \"ReminderSentAt\" timestamp without time zone NULL;");
+
         // Seed a default school + its first Admin account, but only on a first-ever run.
         var defaultSchool = await context.Schools.FirstOrDefaultAsync(s => s.Slug == "heavens-gate-academy");
         if (defaultSchool == null)

@@ -51,6 +51,9 @@ builder.Services.AddAuthentication("CookieAuth")
 builder.Services.AddAuthorization();
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
+builder.Services.AddScoped<StudentCsvImporter>();
+builder.Services.AddSingleton<ISchoolClock, SchoolClock>();
+builder.Services.AddHostedService<ExamReminderService>();
 
 var app = builder.Build();
 

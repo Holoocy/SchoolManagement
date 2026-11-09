@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using SchoolManagement.Data;
 using SchoolManagement.Models;
+using SchoolManagement.Services;
 
 namespace SchoolManagement.Controllers;
 
@@ -13,10 +14,12 @@ public class TeacherPortalController : Controller
 {
     private readonly ApplicationDbContext _context;
     private readonly IWebHostEnvironment _environment;
+    private readonly StudentCsvImporter _importer;
 
-    public TeacherPortalController(ApplicationDbContext context, IWebHostEnvironment environment)
+    public TeacherPortalController(ApplicationDbContext context, IWebHostEnvironment environment, StudentCsvImporter importer)
     {
         _context = context;
+        _importer = importer;
         _environment = environment;
     }
 
@@ -217,6 +220,71 @@ public class TeacherPortalController : Controller
         TempData["TeacherPortalSuccess"] = $"{student.FullName} enrolled with admission number {student.AdmissionNumber}.";
         return RedirectToAction(nameof(Students), new { classId = student.ClassId });
     }
+
+    public async Task<IActionResult> ImportStudents(int? classId)
+    {
+        var teacher = await _context.Teachers.FirstOrDefaultAsync(t => t.UserId == CurrentUserId);
+        if (teacher == null) return Forbid();
+
+        var classIds = await GetMyClassIdsAsync(teacher.Id);
+        if (!classIds.Any())
+        {
+            TempData["TeacherPortalError"] = "You need a grade assigned to you before you can enroll students. Ask an administrator to assign one.";
+            return RedirectToAction(nameof(Students));
+        }
+
+        int? preselected = classId != null && classIds.Contains(classId.Value) ? classId
+            : classIds.Count == 1 ? classIds[0] : null;
+
+        await PopulateMyClassesAsync(teacher.Id, preselected);
+        return View(new StudentImportViewModel
+        {
+            DefaultClassId = preselected,
+            GradeRequired = true,
+            BackController = "TeacherPortal",
+            BackAction = nameof(Students)
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [RequestSizeLimit(StudentCsvImporter.MaxFileBytes + 64 * 1024)]
+    public async Task<IActionResult> ImportStudents(IFormFile? file, int? defaultClassId)
+    {
+        var teacher = await _context.Teachers.FirstOrDefaultAsync(t => t.UserId == CurrentUserId);
+        if (teacher == null) return Forbid();
+
+        // Teachers can only enroll into their own grades.
+        var classIds = await GetMyClassIdsAsync(teacher.Id);
+        var model = new StudentImportViewModel
+        {
+            DefaultClassId = defaultClassId,
+            GradeRequired = true,
+            BackController = "TeacherPortal",
+            BackAction = nameof(Students)
+        };
+
+        if (defaultClassId != null && !classIds.Contains(defaultClassId.Value))
+        {
+            model.Errors.Add("You can only enroll students into a grade assigned to you.");
+        }
+        else
+        {
+            var result = await _importer.ImportAsync(file, classIds, defaultClassId, gradeRequired: true);
+            if (result.Succeeded)
+            {
+                TempData["TeacherPortalSuccess"] = $"{result.Students.Count} student{(result.Students.Count == 1 ? "" : "s")} imported from the CSV file.";
+                return RedirectToAction(nameof(Students), new { classId = defaultClassId });
+            }
+            model.Errors = result.Errors;
+        }
+
+        await PopulateMyClassesAsync(teacher.Id, defaultClassId);
+        return View(model);
+    }
+
+    public IActionResult ImportTemplate() =>
+        File(StudentCsvImporter.TemplateFile(), "text/csv", "students-template.csv");
 
     public async Task<IActionResult> TransferStudent(int? id)
     {
