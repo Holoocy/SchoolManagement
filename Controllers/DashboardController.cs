@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SchoolManagement.Data;
 using SchoolManagement.Models;
+using SchoolManagement.Services;
 
 namespace SchoolManagement.Controllers;
 
@@ -13,11 +14,13 @@ public class DashboardController : Controller
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<DashboardController> _logger;
+    private readonly ISchoolClock _clock;
 
-    public DashboardController(ApplicationDbContext context, ILogger<DashboardController> logger)
+    public DashboardController(ApplicationDbContext context, ILogger<DashboardController> logger, ISchoolClock clock)
     {
         _context = context;
         _logger = logger;
+        _clock = clock;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -106,21 +109,60 @@ public class DashboardController : Controller
             return model;
         }
 
+        model.HasTeacherProfile = true;
+
         var subjectIds = await _context.SubjectTeachers
             .Where(st => st.TeacherId == teacher.Id)
             .Select(st => st.SubjectId)
             .ToListAsync();
+        var classIds = await _context.TeacherClasses
+            .Where(tc => tc.TeacherId == teacher.Id)
+            .Select(tc => tc.ClassId)
+            .ToListAsync();
 
         model.Subjects = await _context.Subjects
             .Where(s => subjectIds.Contains(s.Id))
-            .Select(s => s.Name)
+            .OrderBy(s => s.Name)
+            .Select(s => new TeacherDashboardItem { Id = s.Id, Name = s.Name, Count = s.SubjectClasses.Count })
             .ToListAsync();
 
-        model.Classes = await _context.TeacherClasses
-            .Where(tc => tc.TeacherId == teacher.Id)
-            .Include(tc => tc.Class)
-            .Select(tc => tc.Class!.Name)
+        model.Classes = await _context.Classes
+            .Where(c => classIds.Contains(c.Id))
+            .OrderBy(c => c.Name)
+            .Select(c => new TeacherDashboardItem { Id = c.Id, Name = c.Name, Count = c.Students.Count(s => s.IsActive) })
             .ToListAsync();
+
+        // Students in the teacher's grades (the same students the student directory shows them).
+        var myStudents = _context.Students.Where(s => s.ClassId != null && classIds.Contains(s.ClassId.Value));
+        model.ActiveStudents = await myStudents.CountAsync(s => s.IsActive);
+        model.InactiveStudents = await myStudents.CountAsync(s => !s.IsActive);
+
+        var today = DateTime.UtcNow.Date;
+        var todaysAttendance = await _context.AttendanceRecords
+            .Where(a => a.AttendanceDate == today && a.Student != null && a.Student.ClassId != null && classIds.Contains(a.Student.ClassId.Value))
+            .Select(a => a.Status)
+            .ToListAsync();
+        model.MarkedToday = todaysAttendance.Count;
+        model.PresentToday = todaysAttendance.Count(s => s == "Present");
+
+        var exams = await _context.Exams
+            .Include(e => e.Subject).Include(e => e.Class)
+            .Where(e => e.TeacherId == teacher.Id)
+            .ToListAsync();
+        model.TotalExams = exams.Count;
+        model.ExamsNeedingAction = exams.Count(e => e.Status == ExamStatus.Draft || e.Status == ExamStatus.Rejected);
+        model.ExamsAwaitingApproval = exams.Count(e => e.Status == ExamStatus.PendingApproval);
+        // Scheduled exams that haven't finished yet (exam times are school-local).
+        var now = _clock.Now;
+        model.UpcomingExams = exams
+            .Where(e => e.StartDate != null && e.Status != ExamStatus.Rejected && !e.HasEnded(now)
+                        && (e.EndDate != null || e.StartDate >= now.Date))
+            .OrderBy(e => e.StartDate)
+            .Take(5)
+            .ToList();
+        var examIds = exams.Select(e => e.Id).ToList();
+        model.ExamAnswersToMark = await _context.ExamAnswers
+            .CountAsync(a => a.IsCorrect == null && a.ExamSubmission != null && examIds.Contains(a.ExamSubmission.ExamId));
 
         var assignments = await _context.Assignments
             .Include(a => a.Subject)
@@ -134,6 +176,8 @@ public class DashboardController : Controller
 
         model.TotalWeeklyChecklists = await _context.WeeklyChecklistItems.CountAsync();
         model.PendingWeeklyChecklists = await _context.WeeklyChecklistItems.CountAsync(w => w.Status != "Done");
+        model.MyPendingWeeklyChecklists = await _context.WeeklyChecklistItems
+            .CountAsync(w => w.Status != "Done" && w.AssignedTo == teacher.FirstName + " " + teacher.LastName);
 
         model.SubmissionsToGrade = await _context.AssignmentSubmissions
             .CountAsync(s => s.Status == "Submitted" && s.Assignment != null && s.Assignment.SubjectId != null && subjectIds.Contains(s.Assignment.SubjectId.Value));

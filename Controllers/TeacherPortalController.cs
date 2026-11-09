@@ -130,43 +130,10 @@ public class TeacherPortalController : Controller
         return RedirectToAction(nameof(MySubjects));
     }
 
-    public async Task<IActionResult> Students(int? classId)
-    {
-        var teacher = await _context.Teachers.FirstOrDefaultAsync(t => t.UserId == CurrentUserId);
-        if (teacher == null) return View(new List<Student>());
-
-        var classIds = await GetMyClassIdsAsync(teacher.Id);
-        if (classId != null && !classIds.Contains(classId.Value))
-        {
-            classId = null;
-        }
-
-        if (classId == null && classIds.Count == 1)
-        {
-            classId = classIds[0];
-        }
-
-        var classes = await _context.Classes.Where(c => classIds.Contains(c.Id))
-            .OrderBy(c => c.Name)
-            .Select(c => new { c.Id, c.Name, StudentCount = c.Students.Count(s => s.IsActive) })
-            .ToListAsync();
-        ViewBag.Classes = classes.Select(c => new ClassPickerItem { Id = c.Id, Name = c.Name, StudentCount = c.StudentCount }).ToList();
-        ViewBag.SelectedClassId = classId;
-
-        if (classId == null)
-        {
-            // Multiple grades assigned and none picked yet - show the grade picker only.
-            return View(new List<Student>());
-        }
-
-        var students = await _context.Students
-            .Include(s => s.Class)
-            .Where(s => s.ClassId == classId)
-            .OrderBy(s => s.LastName).ThenBy(s => s.FirstName)
-            .ToListAsync();
-
-        return View(students);
-    }
+    // The full student directory (search, view, edit, transfer, ID card, deactivate,
+    // delete) lives in StudentsController, limited to the teacher's own grades.
+    public IActionResult Students(int? classId) =>
+        RedirectToAction(nameof(StudentsController.Index), "Students", new { classId });
 
     public async Task<IActionResult> CreateStudent(int? classId)
     {
@@ -362,11 +329,4 @@ public class TeacherPortalController : Controller
 
         return $"/uploads/students/{fileName}";
     }
-}
-
-public class ClassPickerItem
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public int StudentCount { get; set; }
 }

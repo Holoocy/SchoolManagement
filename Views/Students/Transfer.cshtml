@@ -11,6 +11,11 @@
 <h2>Transfer Student</h2>
 <p class="text-muted">Move <strong>@Model.FullName</strong> (@Model.AdmissionNumber) to a different class.</p>
 
+@if (TempData["StudentError"] != null)
+{
+    <div class="alert alert-danger">@TempData["StudentError"]</div>
+}
+
 <form asp-action="Transfer" method="post" style="max-width: 420px;">
     <input type="hidden" asp-for="Id" />
 
@@ -22,7 +27,10 @@
     <div class="mb-3">
         <label for="newClassId" class="form-label">New Class</label>
         <select name="newClassId" id="newClassId" class="form-select" asp-items="ViewBag.Classes">
-            <option value="">-- Unassigned --</option>
+            @if (User.IsInRole("Admin"))
+            {
+                <option value="">-- Unassigned --</option>
+            }
         </select>
     </div>
 

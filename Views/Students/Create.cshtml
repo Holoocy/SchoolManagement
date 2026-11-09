@@ -123,8 +123,9 @@
                     <div class="enrollment-field">
                         <label asp-for="ClassId" class="form-label"></label>
                         <select asp-for="ClassId" class="form-select" asp-items="ViewBag.Classes">
-                            <option value="">Unassigned for now</option>
+                            <option value="">@(User.IsInRole("Admin") ? "Unassigned for now" : "Select a grade")</option>
                         </select>
+                        <span asp-validation-for="ClassId" class="field-validation-error"></span>
                     </div>
                     <div class="enrollment-field">
                         <label asp-for="AcademicCalendar" class="form-label"></label>

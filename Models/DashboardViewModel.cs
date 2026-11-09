@@ -18,18 +18,36 @@ public class DashboardViewModel
     public int SubmissionsToGrade { get; set; }
 }
 
+public class TeacherDashboardItem
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public int Count { get; set; }
+}
+
 public class TeacherDashboardViewModel
 {
     public string TeacherName { get; set; } = string.Empty;
-    public List<string> Subjects { get; set; } = new();
-    public List<string> Classes { get; set; } = new();
+    public bool HasTeacherProfile { get; set; }
+    public List<TeacherDashboardItem> Subjects { get; set; } = new();
+    public List<TeacherDashboardItem> Classes { get; set; } = new(); // Count = active students
+    public int ActiveStudents { get; set; }
+    public int InactiveStudents { get; set; }
     public int TotalAssignments { get; set; }
     public int PendingAssignments { get; set; }
     public List<Assignment> RecentAssignments { get; set; } = new();
     public int TotalWeeklyChecklists { get; set; }
     public int PendingWeeklyChecklists { get; set; }
+    public int MyPendingWeeklyChecklists { get; set; }
     public int SubmissionsToGrade { get; set; }
     public decimal? AverageGradeGiven { get; set; }
+    public int TotalExams { get; set; }
+    public int ExamsNeedingAction { get; set; } // drafts and rejected exams
+    public int ExamsAwaitingApproval { get; set; }
+    public int ExamAnswersToMark { get; set; }
+    public List<Exam> UpcomingExams { get; set; } = new();
+    public int MarkedToday { get; set; }
+    public int PresentToday { get; set; }
 }
 
 public class StudentDashboardViewModel

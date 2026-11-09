@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -8,7 +9,10 @@ using SchoolManagement.Services;
 
 namespace SchoolManagement.Controllers;
 
-[Authorize(Roles = "Admin")]
+// Admins manage every student. Teachers manage the students in the grades assigned to
+// them: every lookup goes through ScopedStudentsAsync, and grade choices are limited
+// to their own grades.
+[Authorize(Roles = "Admin,Teacher")]
 public class StudentsController : Controller
 {
     private readonly ApplicationDbContext _context;
@@ -22,9 +26,55 @@ public class StudentsController : Controller
         _importer = importer;
     }
 
-    public async Task<IActionResult> Index(string? search)
+    private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+    private bool IsAdmin => User.IsInRole("Admin");
+
+    // Null for admins (no restriction); otherwise the grades assigned to this teacher.
+    private async Task<List<int>?> GetAllowedClassIdsAsync()
     {
-        var query = _context.Students.Include(s => s.Class).AsQueryable();
+        if (IsAdmin) return null;
+
+        var teacher = await _context.Teachers.FirstOrDefaultAsync(t => t.UserId == CurrentUserId);
+        if (teacher == null) return new List<int>();
+
+        return await _context.TeacherClasses
+            .Where(tc => tc.TeacherId == teacher.Id)
+            .Select(tc => tc.ClassId)
+            .ToListAsync();
+    }
+
+    private async Task<IQueryable<Student>> ScopedStudentsAsync()
+    {
+        var allowed = await GetAllowedClassIdsAsync();
+        var query = _context.Students.AsQueryable();
+        return allowed == null ? query : query.Where(s => s.ClassId != null && allowed.Contains(s.ClassId.Value));
+    }
+
+    private async Task<Student?> FindScopedStudentAsync(int id, bool includeClass = false)
+    {
+        var query = await ScopedStudentsAsync();
+        if (includeClass) query = query.Include(s => s.Class);
+        return await query.FirstOrDefaultAsync(s => s.Id == id);
+    }
+
+    // Teachers must keep students in one of their own grades.
+    private async Task<bool> IsAllowedClassAsync(int? classId)
+    {
+        var allowed = await GetAllowedClassIdsAsync();
+        return allowed == null || (classId != null && allowed.Contains(classId.Value));
+    }
+
+    public async Task<IActionResult> Index(string? search, int? classId)
+    {
+        var allowed = await GetAllowedClassIdsAsync();
+        if (allowed != null && classId != null && !allowed.Contains(classId.Value)) classId = null;
+
+        var query = (await ScopedStudentsAsync()).Include(s => s.Class).AsQueryable();
+        if (classId != null)
+        {
+            query = query.Where(s => s.ClassId == classId);
+        }
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -41,19 +91,38 @@ public class StudentsController : Controller
             .ToListAsync();
 
         ViewBag.Search = search;
+        ViewBag.ClassId = classId;
+        ViewBag.IsTeacher = allowed != null;
+        ViewBag.HasGrades = allowed == null || allowed.Any();
+        await PopulateClassesAsync(classId);
         return View(students);
     }
 
-    public async Task<IActionResult> Create()
+    public async Task<IActionResult> Create(int? classId)
     {
-        await PopulateClassesAsync();
-        return View();
+        var allowed = await GetAllowedClassIdsAsync();
+        if (allowed != null && !allowed.Any())
+        {
+            TempData["StudentError"] = "You need a grade assigned to you before you can enroll students. Ask an administrator to assign one.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        int? preselected = allowed == null ? classId
+            : classId != null && allowed.Contains(classId.Value) ? classId
+            : allowed.Count == 1 ? allowed[0] : null;
+        await PopulateClassesAsync(preselected);
+        return View(preselected == null ? null : new Student { ClassId = preselected });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(Student student, IFormFile? photoFile)
     {
+        if (!await IsAllowedClassAsync(student.ClassId))
+        {
+            ModelState.AddModelError(nameof(Student.ClassId), "You can only enroll students into a grade assigned to you.");
+        }
+
         student.AdmissionNumber = await GenerateAdmissionNumberAsync();
         ModelState.Remove(nameof(Student.AdmissionNumber));
 
@@ -71,9 +140,10 @@ public class StudentsController : Controller
         _context.Add(student);
         await _context.SaveChangesAsync();
         TempData["StudentSuccess"] = $"{student.FullName} enrolled with admission number {student.AdmissionNumber}.";
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), IsAdmin ? null : new { classId = student.ClassId });
     }
 
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> ImportStudents()
     {
         await PopulateClassesAsync();
@@ -82,6 +152,7 @@ public class StudentsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin")]
     [RequestSizeLimit(StudentCsvImporter.MaxFileBytes + 64 * 1024)]
     public async Task<IActionResult> ImportStudents(IFormFile? file, int? defaultClassId)
     {
@@ -96,6 +167,7 @@ public class StudentsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Roles = "Admin")]
     public IActionResult ImportTemplate() =>
         File(StudentCsvImporter.TemplateFile(), "text/csv", "students-template.csv");
 
@@ -106,7 +178,7 @@ public class StudentsController : Controller
             return NotFound();
         }
 
-        var student = await _context.Students.Include(s => s.Class).FirstOrDefaultAsync(m => m.Id == id);
+        var student = await FindScopedStudentAsync(id.Value, includeClass: true);
         if (student == null)
         {
             return NotFound();
@@ -122,7 +194,7 @@ public class StudentsController : Controller
             return NotFound();
         }
 
-        var student = await _context.Students.FindAsync(id);
+        var student = await FindScopedStudentAsync(id.Value);
         if (student == null)
         {
             return NotFound();
@@ -141,6 +213,21 @@ public class StudentsController : Controller
             return NotFound();
         }
 
+        var existing = await (await ScopedStudentsAsync()).AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
+        if (existing == null)
+        {
+            return NotFound();
+        }
+
+        if (!await IsAllowedClassAsync(student.ClassId))
+        {
+            ModelState.AddModelError(nameof(Student.ClassId), "Keep the student in a grade assigned to you.");
+        }
+
+        // The admission number is generated by the system and can't be changed here.
+        student.AdmissionNumber = existing.AdmissionNumber;
+        ModelState.Remove(nameof(Student.AdmissionNumber));
+
         if (!ModelState.IsValid)
         {
             await PopulateClassesAsync(student.ClassId);
@@ -149,8 +236,7 @@ public class StudentsController : Controller
 
         try
         {
-            var existing = await _context.Students.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
-            student.UserId = existing?.UserId;
+            student.UserId = existing.UserId;
 
             if (photoFile != null && photoFile.Length > 0)
             {
@@ -158,7 +244,7 @@ public class StudentsController : Controller
             }
             else
             {
-                student.PhotoPath = existing?.PhotoPath;
+                student.PhotoPath = existing.PhotoPath;
             }
 
             _context.Update(student);
@@ -174,7 +260,8 @@ public class StudentsController : Controller
             throw;
         }
 
-        return RedirectToAction(nameof(Index));
+        TempData["StudentSuccess"] = $"{student.FullName}'s details have been updated.";
+        return RedirectToAction(nameof(Index), IsAdmin ? null : new { classId = student.ClassId });
     }
 
     public async Task<IActionResult> Delete(int? id)
@@ -184,7 +271,7 @@ public class StudentsController : Controller
             return NotFound();
         }
 
-        var student = await _context.Students.Include(s => s.Class).FirstOrDefaultAsync(m => m.Id == id);
+        var student = await FindScopedStudentAsync(id.Value, includeClass: true);
         if (student == null)
         {
             return NotFound();
@@ -197,13 +284,16 @@ public class StudentsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
-        var student = await _context.Students.FindAsync(id);
-        if (student != null)
+        var student = await FindScopedStudentAsync(id);
+        if (student == null)
         {
-            _context.Students.Remove(student);
-            await _context.SaveChangesAsync();
+            return NotFound();
         }
 
+        _context.Students.Remove(student);
+        await _context.SaveChangesAsync();
+
+        TempData["StudentSuccess"] = $"{student.FullName} has been deleted.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -211,7 +301,7 @@ public class StudentsController : Controller
     {
         if (id == null) return NotFound();
 
-        var student = await _context.Students.Include(s => s.Class).FirstOrDefaultAsync(s => s.Id == id);
+        var student = await FindScopedStudentAsync(id.Value, includeClass: true);
         if (student == null) return NotFound();
 
         await PopulateClassesAsync(student.ClassId);
@@ -222,8 +312,14 @@ public class StudentsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Transfer(int id, int? newClassId)
     {
-        var student = await _context.Students.FindAsync(id);
+        var student = await FindScopedStudentAsync(id);
         if (student == null) return NotFound();
+
+        if (!await IsAllowedClassAsync(newClassId))
+        {
+            TempData["StudentError"] = "You can only transfer students to a grade assigned to you.";
+            return RedirectToAction(nameof(Transfer), new { id });
+        }
 
         student.ClassId = newClassId;
         await _context.SaveChangesAsync();
@@ -236,7 +332,7 @@ public class StudentsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleActive(int id)
     {
-        var student = await _context.Students.FindAsync(id);
+        var student = await FindScopedStudentAsync(id);
         if (student == null) return NotFound();
 
         student.IsActive = !student.IsActive;
@@ -250,7 +346,7 @@ public class StudentsController : Controller
     {
         if (id == null) return NotFound();
 
-        var student = await _context.Students.Include(s => s.Class).FirstOrDefaultAsync(s => s.Id == id);
+        var student = await FindScopedStudentAsync(id.Value, includeClass: true);
         if (student == null) return NotFound();
 
         return View(student);
@@ -263,9 +359,11 @@ public class StudentsController : Controller
 
     private async Task PopulateClassesAsync(int? selectedId = null)
     {
-        ViewBag.Classes = new SelectList(
-            await _context.Classes.OrderBy(c => c.Name).ToListAsync(),
-            "Id", "Name", selectedId);
+        var allowed = await GetAllowedClassIdsAsync();
+        var classes = _context.Classes.AsQueryable();
+        if (allowed != null) classes = classes.Where(c => allowed.Contains(c.Id));
+
+        ViewBag.Classes = new SelectList(await classes.OrderBy(c => c.Name).ToListAsync(), "Id", "Name", selectedId);
     }
 
     private async Task<string> GenerateAdmissionNumberAsync()
