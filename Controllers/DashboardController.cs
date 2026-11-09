@@ -59,10 +59,13 @@ public class DashboardController : Controller
             TotalStudents = await _context.Students.CountAsync(),
             TotalTeachers = await _context.Teachers.CountAsync(),
             TotalAssignments = await _context.Assignments.CountAsync(),
-            PendingAssignments = await _context.Assignments.CountAsync(a => a.Status != "Done"),
+            // Same rule as the Assignments page: pending until every submission is graded.
+            PendingAssignments = await _context.Assignments
+                .CountAsync(a => !a.Submissions.Any() || a.Submissions.Any(s => s.Status != "Graded")),
             TotalWeeklyChecklists = await _context.WeeklyChecklistItems.CountAsync(),
             PendingWeeklyChecklists = await _context.WeeklyChecklistItems.CountAsync(w => w.Status != "Done"),
             RecentAssignments = await _context.Assignments
+                .Include(a => a.Submissions)
                 .OrderByDescending(a => a.DueDate)
                 .Take(5)
                 .ToListAsync(),
@@ -166,12 +169,13 @@ public class DashboardController : Controller
 
         var assignments = await _context.Assignments
             .Include(a => a.Subject)
+            .Include(a => a.Submissions)
             .Where(a => a.SubjectId != null && subjectIds.Contains(a.SubjectId!.Value))
             .OrderByDescending(a => a.DueDate)
             .ToListAsync();
 
         model.TotalAssignments = assignments.Count;
-        model.PendingAssignments = assignments.Count(a => a.Status != "Done");
+        model.PendingAssignments = assignments.Count(a => a.IsPending);
         model.RecentAssignments = assignments.Take(5).ToList();
 
         model.TotalWeeklyChecklists = await _context.WeeklyChecklistItems.CountAsync();

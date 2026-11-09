@@ -202,7 +202,7 @@ else if (!Model.Classes.Any() || !Model.Subjects.Any())
                                     <div class="entity-title">@assignment.Title</div>
                                     <div class="entity-meta">@assignment.Subject?.Name &middot; Due @assignment.DueDate.ToShortDateString()</div>
                                 </div>
-                                <span class="status-badge status-@assignment.Status.ToLower().Replace(" ", "-")">@assignment.Status</span>
+                                <span class="status-badge status-@assignment.ProgressStatus.ToLower().Replace(" ", "-")">@assignment.ProgressStatus</span>
                             </a>
                         </li>
                     }

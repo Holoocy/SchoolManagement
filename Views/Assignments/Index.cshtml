@@ -47,23 +47,7 @@ else
     <tbody>
         @foreach (var item in Model)
         {
-            string displayStatus;
-            if (!item.Submissions.Any())
-            {
-                displayStatus = "Not Assigned";
-            }
-            else if (item.Submissions.All(s => s.Status == "Graded"))
-            {
-                displayStatus = "Graded";
-            }
-            else if (item.Submissions.Any(s => s.Status == "Submitted" || s.Status == "Graded"))
-            {
-                displayStatus = "Submitted";
-            }
-            else
-            {
-                displayStatus = "Assigned";
-            }
+            var displayStatus = item.ProgressStatus;
             <tr>
                 <td>@(item.Subject?.Name ?? "—")</td>
                 <td>@(item.Class?.Name ?? "—")</td>

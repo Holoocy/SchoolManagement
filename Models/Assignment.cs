@@ -37,4 +37,15 @@ public class Assignment : ITenantEntity
     public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
 
     public ICollection<AssignmentSubmission> Submissions { get; set; } = new List<AssignmentSubmission>();
+
+    // Status shown on the Assignments page and dashboards, worked out from the students'
+    // submissions. Requires Submissions to be loaded.
+    public string ProgressStatus =>
+        !Submissions.Any() ? "Not Assigned"
+        : Submissions.All(s => s.Status == "Graded") ? "Graded"
+        : Submissions.Any(s => s.Status == "Submitted" || s.Status == "Graded") ? "Submitted"
+        : "Assigned";
+
+    // Pending until every assigned student's work has been graded.
+    public bool IsPending => ProgressStatus != "Graded";
 }
