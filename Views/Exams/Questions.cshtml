@@ -10,7 +10,12 @@
 </div>
 
 <h2>@Model.Title</h2>
-<p class="text-muted">@Model.Subject?.Name &middot; @Model.Class?.Name &middot; <span class="status-badge status-@Model.Status.ToLower()">@Model.Status</span></p>
+<p class="text-muted">@Model.Subject?.Name &middot; @Model.Class?.Name &middot; <span class="status-badge status-@Model.Status.ToLower()">@Model.Status</span>
+    @if (Model.Questions.Any())
+    {
+        <text>&middot; @Model.Questions.Count question(s), @Model.Questions.Sum(q => q.Marks) marks in total</text>
+    }
+</p>
 
 @if (TempData["ExamSuccess"] != null)
 {

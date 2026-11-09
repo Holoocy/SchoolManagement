@@ -77,7 +77,7 @@ else
                         case SchoolManagement.Models.QuestionTypes.Uploaded:
                             <label class="form-label" for="q@(q.Id)Written">Your answer</label>
                             <textarea class="form-control" name="answers[@q.Id]" id="q@(q.Id)Written" rows="5"></textarea>
-                            <div class="form-text">Your teacher will mark this answer.</div>
+                            <div class="form-text">Your teacher will mark this answer. (@q.Marks mark@(q.Marks == 1 ? "" : "s"))</div>
                             break;
                         case SchoolManagement.Models.QuestionTypes.FillInTheGap:
                             <label class="form-label" for="q@(q.Id)Gap">Your answer</label>

@@ -4293,3 +4293,7 @@ a.stat-card-link:focus-visible { outline: 2px solid var(--color-accent); outline
 /* Row action menus in tables: let an open menu extend past the table/card edge. */
 .content-area :has(.table .dropdown-menu.show) { overflow: visible !important; }
 .table .dropdown-menu { z-index: 1050; }
+
+/* Marking: score box for a written answer */
+.mark-score { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.mark-score .form-control { width: 6.5rem; }

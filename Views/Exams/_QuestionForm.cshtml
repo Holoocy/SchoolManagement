@@ -145,6 +145,12 @@
                     <textarea name="markingGuide" id="markingGuide" class="form-control" rows="3">@markingGuide</textarea>
                     <div class="entity-form-hint">Students write their answer; you mark it after they submit. This guide is only shown to you while marking.</div>
                 </div>
+                <div class="entity-form-field">
+                    <label asp-for="Marks" class="form-label">Marks for this question</label>
+                    <input asp-for="Marks" type="number" min="1" max="@ExamQuestion.MaxMarks" step="1" class="form-control" />
+                    <div class="entity-form-hint">The highest score a student can get. When marking, you give each answer from 0 up to this.</div>
+                    <span asp-validation-for="Marks" class="field-validation-error"></span>
+                </div>
             </div>
         </section>
 

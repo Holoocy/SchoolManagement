@@ -2,7 +2,7 @@
 
 @{
     ViewData["Title"] = "Exam Result";
-    var percentage = Model.TotalQuestions > 0 ? Math.Round(Model.Score * 100m / Model.TotalQuestions, 1) : 0m;
+    var percentage = Model.Percentage;
 }
 
 <div class="page-header">
@@ -19,7 +19,7 @@
 
 <div class="card">
     <div class="card-body text-center">
-        <h2 class="display-5 mb-2">@Model.Score / @Model.TotalQuestions</h2>
+        <h2 class="display-5 mb-2">@Model.Score / @Model.OutOf</h2>
         <p class="text-muted">@percentage%@(Model.AwaitingMarking ? " (provisional)" : "")</p>
         <p class="text-muted small">Submitted @Model.SubmittedAt.ToLocalTime().ToString("f")</p>
     </div>

@@ -243,11 +243,15 @@ public class StudentPortalController : Controller
         {
             answers.TryGetValue(q.Id, out var answer);
             answer = answer?.Trim() ?? string.Empty;
+            var unansweredWritten = q.IsManuallyMarked && answer.Length == 0;
             return new ExamAnswer
             {
                 ExamQuestionId = q.Id,
+                ExamQuestion = q,
                 AnswerText = answer,
-                IsCorrect = q.IsManuallyMarked && answer.Length > 0 ? null : q.IsCorrect(answer)
+                IsCorrect = q.IsManuallyMarked && answer.Length > 0 ? null : q.IsCorrect(answer),
+                // A blank written answer scores 0 straight away.
+                MarksAwarded = unansweredWritten ? 0 : null
             };
         }).ToList();
 
@@ -255,8 +259,9 @@ public class StudentPortalController : Controller
         {
             ExamId = examId,
             StudentId = student.Id,
-            Score = examAnswers.Count(a => a.IsCorrect == true),
+            Score = examAnswers.Sum(a => a.Points),
             TotalQuestions = exam.Questions.Count,
+            TotalMarks = exam.Questions.Sum(q => q.Marks),
             Answers = examAnswers
         });
         await _context.SaveChangesAsync();

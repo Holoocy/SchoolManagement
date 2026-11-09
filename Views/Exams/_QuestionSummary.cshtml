@@ -3,6 +3,7 @@
 
 <div class="question-summary">
     <span class="status-badge status-assigned">@QuestionTypes.Label(Model.QuestionType)</span>
+    <span class="status-badge status-pending">@Model.Marks mark@(Model.Marks == 1 ? "" : "s")</span>
     @if (!string.IsNullOrWhiteSpace(Model.QuestionText))
     {
         <div class="fw-bold mt-1 question-text">@Model.QuestionText</div>

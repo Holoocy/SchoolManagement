@@ -45,7 +45,7 @@ else
             {
                 <tr>
                     <td>@s.Student?.FullName</td>
-                    <td>@s.Score / @s.TotalQuestions</td>
+                    <td>@s.Score / @s.OutOf <span class="text-muted small">(@s.Percentage%)</span></td>
                     <td>
                         @if (s.AwaitingMarking)
                         {

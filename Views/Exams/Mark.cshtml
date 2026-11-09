@@ -5,6 +5,9 @@
     var written = Model.Answers.Where(a => a.ExamQuestion!.IsManuallyMarked).OrderBy(a => a.ExamQuestionId).ToList();
     var autoCorrect = Model.Answers.Count(a => !a.ExamQuestion!.IsManuallyMarked && a.IsCorrect == true);
     var autoTotal = Model.Answers.Count(a => !a.ExamQuestion!.IsManuallyMarked);
+    var writtenTotal = written.Sum(a => a.ExamQuestion!.Marks);
+    // Values the teacher typed, re-shown when a score was out of range.
+    var posted = ViewBag.PostedMarks as Dictionary<int, string>;
 }
 
 <div class="mb-3">
@@ -15,9 +18,15 @@
     <h1 class="page-title">Mark: @Model.Student?.FullName</h1>
     <p class="page-subtitle">
         @Model.Exam?.Title &middot; @Model.Exam?.Subject?.Name &middot;
-        Automatically marked: @autoCorrect / @autoTotal &middot; Current score: @Model.Score / @Model.TotalQuestions
+        Automatically marked: @autoCorrect / @autoTotal &middot; Written questions: @writtenTotal marks &middot;
+        Current score: @Model.Score / @Model.OutOf
     </p>
 </div>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">Some scores weren't saved. Check the highlighted boxes.</div>
+}
 
 @if (!written.Any())
 {
@@ -25,7 +34,7 @@
 }
 else
 {
-    <form method="post" asp-action="Mark" asp-route-id="@Model.Id">
+    <form method="post" asp-action="Mark" asp-route-id="@Model.Id" novalidate>
         @Html.AntiForgeryToken()
 
         @{ var number = 0; }
@@ -33,17 +42,22 @@ else
         {
             number++;
             var q = answer.ExamQuestion!;
+            var key = $"marks[{answer.Id}]";
+            string? value = null;
+            if (posted != null && posted.TryGetValue(answer.Id, out var typed)) value = typed;
+            else if (answer.IsCorrect != null) value = answer.Points.ToString();
+            var hasError = ViewData.ModelState.TryGetValue(key, out var entry) && entry.Errors.Count > 0;
             <div class="card mb-3">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                        <h2 class="h6 mb-0">Written question @number</h2>
+                        <h2 class="h6 mb-0">Written question @number <span class="text-muted fw-normal">(@q.Marks mark@(q.Marks == 1 ? "" : "s"))</span></h2>
                         @if (answer.IsCorrect == null)
                         {
                             <span class="status-badge status-pending">Not marked</span>
                         }
                         else
                         {
-                            <span class="status-badge @(answer.IsCorrect == true ? "status-completed" : "status-rejected")">@(answer.IsCorrect == true ? "Correct" : "Incorrect")</span>
+                            <span class="status-badge @(answer.Points == q.Marks ? "status-completed" : answer.Points == 0 ? "status-rejected" : "status-pending")">@answer.Points / @q.Marks</span>
                         }
                     </div>
 
@@ -73,16 +87,31 @@ else
                     <div class="form-label">Student's answer</div>
                     <div class="written-answer question-text">@(string.IsNullOrWhiteSpace(answer.AnswerText) ? "(no answer)" : answer.AnswerText)</div>
 
-                    <div class="btn-group mt-3" role="group" aria-label="Mark for written question @number">
-                        <input type="radio" class="btn-check" name="marks[@answer.Id]" id="m@(answer.Id)Correct" value="true" autocomplete="off" checked="@(answer.IsCorrect == true)" />
-                        <label class="btn btn-outline-secondary" for="m@(answer.Id)Correct">Correct (1 mark)</label>
-                        <input type="radio" class="btn-check" name="marks[@answer.Id]" id="m@(answer.Id)Wrong" value="false" autocomplete="off" checked="@(answer.IsCorrect == false)" />
-                        <label class="btn btn-outline-secondary" for="m@(answer.Id)Wrong">Incorrect (0)</label>
+                    <div class="mark-score mt-3">
+                        <label class="form-label mb-0" for="m@(answer.Id)">Score</label>
+                        <input type="number" class="form-control@(hasError ? " is-invalid" : "")" name="@key" id="m@(answer.Id)"
+                               min="0" max="@q.Marks" step="1" value="@value" placeholder="0–@q.Marks" />
+                        <span class="text-muted">out of @q.Marks</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-fill="@q.Marks" data-target="m@(answer.Id)">Full marks</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-fill="0" data-target="m@(answer.Id)">0</button>
                     </div>
+                    @if (hasError)
+                    {
+                        <div class="text-danger small mt-1">@entry!.Errors[0].ErrorMessage</div>
+                    }
                 </div>
             </div>
         }
 
         <button type="submit" class="btn btn-primary">Save marks</button>
+        <span class="text-muted small ms-2">Leave a box empty to mark that answer later.</span>
     </form>
+
+    <script>
+        document.querySelectorAll('[data-fill]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.getElementById(btn.getAttribute('data-target')).value = btn.getAttribute('data-fill');
+            });
+        });
+    </script>
 }

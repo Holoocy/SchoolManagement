@@ -49,11 +49,11 @@ else
                         {
                             if (submission.AwaitingMarking)
                             {
-                                <span class="status-badge status-pending">Awaiting marking (@submission.Score/@submission.TotalQuestions so far)</span>
+                                <span class="status-badge status-pending">Awaiting marking (@submission.Score/@submission.OutOf so far)</span>
                             }
                             else
                             {
-                                <span class="status-badge status-done">Score: @submission.Score/@submission.TotalQuestions</span>
+                                <span class="status-badge status-done">Score: @submission.Score/@submission.OutOf</span>
                             }
                         }
                         else if (exam.HasNotStarted(now))

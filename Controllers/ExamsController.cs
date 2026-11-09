@@ -281,6 +281,7 @@ public class ExamsController : Controller
         existing.OptionC = question.OptionC;
         existing.OptionD = question.OptionD;
         existing.CorrectOption = question.CorrectOption;
+        existing.Marks = question.Marks;
 
         await _context.SaveChangesAsync();
 
@@ -338,6 +339,9 @@ public class ExamsController : Controller
     {
         question.QuestionText = question.QuestionText?.Trim() ?? string.Empty;
 
+        // Only uploaded (written) questions carry a teacher-chosen mark; the rest are worth 1.
+        if (question.QuestionType != QuestionTypes.Uploaded) question.Marks = 1;
+
         switch (question.QuestionType)
         {
             case QuestionTypes.Uploaded:
@@ -370,10 +374,16 @@ public class ExamsController : Controller
             return;
         }
 
+        // A blank or non-numeric marks box only matters for uploaded questions.
+        ModelState.Remove(nameof(ExamQuestion.Marks));
+
         if (question.QuestionType == QuestionTypes.Uploaded)
         {
             if (!hasAttachment)
                 ModelState.AddModelError("attachment", "Upload the question as an image or PDF.");
+            if (question.Marks < 1 || question.Marks > ExamQuestion.MaxMarks
+                || HttpContext.Request.Form.TryGetValue(nameof(ExamQuestion.Marks), out var posted) && !int.TryParse(posted, out _))
+                ModelState.AddModelError(nameof(ExamQuestion.Marks), $"Enter how many marks this question is worth (1 to {ExamQuestion.MaxMarks}).");
         }
         else if (string.IsNullOrWhiteSpace(question.QuestionText))
         {
@@ -537,25 +547,47 @@ public class ExamsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Mark(int id, [FromForm(Name = "marks")] Dictionary<int, bool>? marks)
+    public async Task<IActionResult> Mark(int id, [FromForm(Name = "marks")] Dictionary<int, string>? marks)
     {
         var submission = await LoadSubmissionForMarkingAsync(id);
         if (submission == null) return NotFound();
 
-        foreach (var answer in submission.Answers.Where(a => a.ExamQuestion!.IsManuallyMarked))
+        // The teacher gives each written answer a score from 0 to the question's marks.
+        // A blank box leaves that answer as it was.
+        var written = submission.Answers.Where(a => a.ExamQuestion!.IsManuallyMarked).ToList();
+        var scores = new Dictionary<int, int>();
+        foreach (var answer in written)
         {
-            if (marks != null && marks.TryGetValue(answer.Id, out var isCorrect))
+            if (marks == null || !marks.TryGetValue(answer.Id, out var raw) || string.IsNullOrWhiteSpace(raw)) continue;
+
+            var max = answer.ExamQuestion!.Marks;
+            if (!int.TryParse(raw.Trim(), out var score) || score < 0 || score > max)
             {
-                answer.IsCorrect = isCorrect;
+                ModelState.AddModelError($"marks[{answer.Id}]", $"Enter a whole number from 0 to {max}.");
+                continue;
             }
+            scores[answer.Id] = score;
         }
 
-        submission.Score = submission.Answers.Count(a => a.IsCorrect == true);
+        if (!ModelState.IsValid)
+        {
+            ViewBag.PostedMarks = marks;
+            return View(submission);
+        }
+
+        foreach (var answer in written.Where(a => scores.ContainsKey(a.Id)))
+        {
+            answer.MarksAwarded = scores[answer.Id];
+            answer.IsCorrect = answer.MarksAwarded == answer.ExamQuestion!.Marks;
+        }
+
+        submission.Score = submission.Answers.Sum(a => a.Points);
+        submission.TotalMarks = submission.Answers.Sum(a => a.ExamQuestion!.Marks);
         await _context.SaveChangesAsync();
 
         TempData["ExamSuccess"] = submission.AwaitingMarking
             ? $"Marks saved for {submission.Student?.FullName}. Some answers still need marking."
-            : $"Marking complete for {submission.Student?.FullName}: {submission.Score} / {submission.TotalQuestions}.";
+            : $"Marking complete for {submission.Student?.FullName}: {submission.Score} / {submission.OutOf}.";
         return RedirectToAction(nameof(Results), new { id = submission.ExamId });
     }
 

@@ -59,6 +59,14 @@ public class ExamQuestion : ITenantEntity
     [Display(Name = "Correct Option")]
     public string CorrectOption { get; set; } = "A";
 
+    // How many marks the question is worth. Objective questions are worth 1;
+    // the teacher sets the marks for an uploaded (written) question.
+    [Range(1, MaxMarks)]
+    [Display(Name = "Marks")]
+    public int Marks { get; set; } = 1;
+
+    public const int MaxMarks = 100;
+
     // Written answers to uploaded questions are marked by the teacher, not automatically.
     public bool IsManuallyMarked => QuestionType == QuestionTypes.Uploaded;
 
