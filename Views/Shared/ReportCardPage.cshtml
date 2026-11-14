@@ -1,0 +1,19 @@
+@model SchoolManagement.Models.ReportCardPageViewModel
+@{
+    ViewData["Title"] = $"Report Card – {Model.Data.StudentName}";
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 no-print">
+    @if (Model.BackUrl != null)
+    {
+        <a href="@Model.BackUrl" class="btn btn-outline-secondary btn-sm">@Model.BackText</a>
+    }
+    <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">Print</button>
+</div>
+
+@if (Model.Notice != null)
+{
+    <div class="alert alert-warning no-print">@Model.Notice</div>
+}
+
+<partial name="_ReportCard" model="Model.Data" />

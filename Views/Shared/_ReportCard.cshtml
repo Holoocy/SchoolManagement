@@ -1,0 +1,69 @@
+@model SchoolManagement.Models.ReportCardData
+@{
+    var d = Model;
+}
+
+<article class="report-card">
+    <header class="report-card-head">
+        <div>
+            <div class="report-card-school">@d.SchoolName</div>
+            <h2 class="report-card-title">Report Card</h2>
+        </div>
+        <div class="report-card-term">@d.Term</div>
+    </header>
+
+    <dl class="report-card-info">
+        <div><dt>Student</dt><dd>@d.StudentName</dd></div>
+        <div><dt>Student ID</dt><dd>@d.AdmissionNumber</dd></div>
+        <div><dt>Grade</dt><dd>@d.ClassName</dd></div>
+        <div><dt>Position</dt><dd>@(d.Position != null ? $"{d.Position} of {d.ClassSize}" : "—")</dd></div>
+    </dl>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle report-card-table mb-0">
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th class="text-center">Assignment<br /><small>(@d.AssignmentWeight)</small></th>
+                    <th class="text-center">CA<br /><small>(@d.CaWeight)</small></th>
+                    <th class="text-center">Exam<br /><small>(@d.ExamWeight)</small></th>
+                    <th class="text-center">Total<br /><small>(@d.Total)</small></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!d.Subjects.Any())
+                {
+                    <tr><td colspan="5" class="text-center text-muted">No subjects for this term.</td></tr>
+                }
+                @foreach (var s in d.Subjects)
+                {
+                    <tr>
+                        <td>@s.Name</td>
+                        <td class="text-center">@d.Format(s.Assignment)</td>
+                        <td class="text-center">@d.Format(s.Ca)</td>
+                        <td class="text-center">@d.Format(s.Exam)</td>
+                        <td class="text-center fw-bold">@d.Format(s.Total)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="report-card-summary">
+        <div><span>Average</span><strong>@d.Format(d.Average)<small> / @d.Total</small></strong></div>
+        <div><span>Position in grade</span><strong>@(d.Position != null ? $"{d.Position} of {d.ClassSize}" : "—")</strong></div>
+        <div><span>Subjects with scores</span><strong>@d.SubjectsWithScores of @d.Subjects.Count</strong></div>
+        <div><span>Attendance</span><strong>@(d.AttendanceDays > 0 ? $"{d.PresentDays} of {d.AttendanceDays} days" : "—")</strong></div>
+    </div>
+
+    <section class="report-card-remark">
+        <h3>Teacher's remark</h3>
+        <p>@(string.IsNullOrWhiteSpace(d.TeacherRemark) ? "—" : d.TeacherRemark)</p>
+    </section>
+
+    <footer class="report-card-foot">
+        <div><span>Prepared by</span><strong>@(d.PreparedBy ?? "—")</strong></div>
+        <div><span>Approved by</span><strong>@(d.ApprovedBy ?? "Not approved yet")</strong>@if (d.ApprovedAt != null) { <small>@d.ApprovedAt.Value.ToLocalTime().ToString("d MMM yyyy")</small> }</div>
+        <div><span>Issued</span><strong>@(d.IssuedAt?.ToLocalTime().ToString("d MMM yyyy") ?? "Not sent yet")</strong></div>
+    </footer>
+</article>

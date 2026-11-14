@@ -1,0 +1,32 @@
+@model List<SchoolManagement.Models.ReportCard>
+@{
+    ViewData["Title"] = "Report Cards";
+}
+
+<div class="page-header">
+    <h1 class="page-title">Report Cards</h1>
+    <p class="page-subtitle">Your term report cards, once your school has approved and sent them.</p>
+</div>
+
+@if (!Model.Any())
+{
+    <p class="empty-state">No report cards yet. You'll get a message when one is ready.</p>
+}
+else
+{
+    <ul class="entity-list">
+        @foreach (var c in Model)
+        {
+            var d = c.SentData!;
+            <li class="entity-list-item">
+                <a asp-action="Report" asp-route-id="@c.Id">
+                    <div>
+                        <div class="entity-title">@d.Term</div>
+                        <div class="entity-meta">@d.ClassName &middot; Average @d.Format(d.Average) / @d.Total@(d.Position != null ? $" · Position {d.Position} of {d.ClassSize}" : "") &middot; Issued @c.SentAt?.ToLocalTime().ToString("d MMM yyyy")</div>
+                    </div>
+                    <span class="status-badge status-completed">View</span>
+                </a>
+            </li>
+        }
+    </ul>
+}

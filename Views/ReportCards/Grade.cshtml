@@ -1,0 +1,221 @@
+@model SchoolManagement.Models.ReportCardGradeViewModel
+@using SchoolManagement.Models
+@{
+    ViewData["Title"] = $"Report Cards – {Model.Class.Name}";
+    var b = Model.Batch;
+    var status = Model.Status;
+}
+
+<div class="mb-3">
+    <a asp-action="Index" asp-route-term="@Model.Term" class="btn btn-outline-secondary btn-sm">Back to report cards</a>
+</div>
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+        <h2 class="mb-1">@Model.Class.Name report cards</h2>
+        <p class="mb-0"><span class="status-badge @ReportCardStatus.Badge(status)">@ReportCardStatus.Label(status)</span> <span class="small text-muted ms-1">@Model.Term &middot; @Model.Rows.Count student(s)</span></p>
+    </div>
+    <form method="get" class="d-flex gap-2 align-items-center">
+        <input type="hidden" name="classId" value="@Model.Class.Id" />
+        <label class="small text-muted" for="term">Term</label>
+        <select name="term" id="term" class="form-select form-select-sm" onchange="this.form.submit()">
+            @foreach (var t in Model.Terms)
+            {
+                <option value="@t" selected="@(t == Model.Term)">@t</option>
+            }
+        </select>
+    </form>
+</div>
+
+@if (TempData["ReportSuccess"] != null)
+{
+    <div class="alert alert-success">@TempData["ReportSuccess"]</div>
+}
+@if (TempData["ReportError"] != null)
+{
+    <div class="alert alert-danger">@TempData["ReportError"]</div>
+}
+
+@* Where the cards are in the approval flow *@
+<ol class="report-steps">
+    <li class="@(b?.SubmittedAt != null && status != ReportCardStatus.Draft && status != ReportCardStatus.Rejected ? "done" : "current")">
+        <strong>1. Teacher submits</strong>
+        <span>@(b?.SubmittedAt != null ? $"{b.SubmittedByName}, {b.SubmittedAt.Value.ToLocalTime():d MMM yyyy h:mm tt}" : "Not submitted yet")</span>
+    </li>
+    <li class="@(status is ReportCardStatus.Approved or ReportCardStatus.Sent ? "done" : status == ReportCardStatus.Pending ? "current" : "")">
+        <strong>2. Admin approves</strong>
+        <span>@(status is ReportCardStatus.Approved or ReportCardStatus.Sent && b?.ReviewedAt != null ? $"{b.ReviewedByName}, {b.ReviewedAt.Value.ToLocalTime():d MMM yyyy h:mm tt}" : status == ReportCardStatus.Pending ? "Waiting for approval" : "—")</span>
+    </li>
+    <li class="@(status == ReportCardStatus.Sent ? "done" : status == ReportCardStatus.Approved ? "current" : "")">
+        <strong>3. Sent to students &amp; parents</strong>
+        <span>@(b?.SentAt != null ? $"{b.SentByName}, {b.SentAt.Value.ToLocalTime():d MMM yyyy h:mm tt}{(b.TimesSent > 1 ? $" (sent {b.TimesSent} times)" : "")}" : "Not sent yet")</span>
+    </li>
+</ol>
+
+@if (status == ReportCardStatus.Rejected && b?.ReviewNote != null)
+{
+    <div class="alert alert-danger"><strong>Sent back by @b.ReviewedByName:</strong> @b.ReviewNote</div>
+}
+@if (b?.SubmitNote != null && status == ReportCardStatus.Pending)
+{
+    <div class="alert alert-info"><strong>Note from @b.SubmittedByName:</strong> @b.SubmitNote</div>
+}
+@if (b?.ReviewNote != null && status is ReportCardStatus.Approved or ReportCardStatus.Sent)
+{
+    <div class="alert alert-info"><strong>Note from @b.ReviewedByName:</strong> @b.ReviewNote</div>
+}
+@if (Model.ScoresChangedSinceSubmit)
+{
+    <div class="alert alert-warning">
+        Scores or students in @Model.Class.Name have changed since these cards were submitted. The cards below show the scores as submitted.
+        @(status == ReportCardStatus.Pending ? "Withdraw and submit again to include the changes." : "Reopen for changes and submit again to include them.")
+    </div>
+}
+
+@* Actions for the current step *@
+@if (status == ReportCardStatus.Pending && Model.IsAdmin)
+{
+    <div class="card mb-3 no-print">
+        <div class="card-body">
+            <h3 class="h6">Review</h3>
+            <p class="small text-muted">Check the cards below (open any card to see it in full), then approve them or send them back with a note.</p>
+            <form method="post" asp-action="Review" class="d-grid gap-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="classId" value="@Model.Class.Id" />
+                <input type="hidden" name="term" value="@Model.Term" />
+                <textarea name="note" class="form-control" rows="2" maxlength="1000" placeholder="Note to the teacher (needed when sending back)"></textarea>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="submit" name="decision" value="approve" class="btn btn-success">Approve report cards</button>
+                    <button type="submit" name="decision" value="reject" class="btn btn-outline-danger">Send back to teacher</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+else if (status == ReportCardStatus.Pending)
+{
+    <div class="d-flex gap-2 align-items-center flex-wrap mb-3 no-print">
+        <span class="small text-muted">Submitted. You'll get a message when the Admin approves the cards or sends them back.</span>
+        <form method="post" asp-action="Withdraw" class="m-0">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="classId" value="@Model.Class.Id" />
+            <input type="hidden" name="term" value="@Model.Term" />
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Withdraw to make changes</button>
+        </form>
+    </div>
+}
+else if (status == ReportCardStatus.Approved)
+{
+    <div class="card mb-3 border-success no-print">
+        <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h3 class="h6 mb-1">Approved – ready to send</h3>
+                <p class="small text-muted mb-0">
+                    Each student gets their own card in their portal, and their parents get it in the parent portal, with a message to let them know.
+                    @if (Model.StudentsWithoutAccounts > 0)
+                    {
+                        <br /><text>@Model.StudentsWithoutAccounts student(s) have no login and no linked parent, so nobody will be notified for them.</text>
+                    }
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <form method="post" asp-action="Send" class="m-0">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="classId" value="@Model.Class.Id" />
+                    <input type="hidden" name="term" value="@Model.Term" />
+                    <button type="submit" class="btn btn-success">Send to students &amp; parents</button>
+                </form>
+                <form method="post" asp-action="Revise" class="m-0">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="classId" value="@Model.Class.Id" />
+                    <input type="hidden" name="term" value="@Model.Term" />
+                    <button type="submit" class="btn btn-outline-secondary">Reopen for changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+else if (status == ReportCardStatus.Sent)
+{
+    <div class="d-flex gap-2 align-items-center flex-wrap mb-3 no-print">
+        <span class="small text-muted">Students and parents can see these cards. To change them, reopen; the new cards need approval again before they replace the ones sent.</span>
+        <form method="post" asp-action="Revise" class="m-0">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="classId" value="@Model.Class.Id" />
+            <input type="hidden" name="term" value="@Model.Term" />
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Reopen for changes</button>
+        </form>
+    </div>
+}
+
+@if (!Model.Rows.Any())
+{
+    <p class="empty-state">There are no active students in @Model.Class.Name.</p>
+}
+else if (Model.IsEditable)
+{
+    <form method="post" asp-action="Save">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="classId" value="@Model.Class.Id" />
+        <input type="hidden" name="term" value="@Model.Term" />
+        <p class="small text-muted">Scores come from the score sheet. Add a remark for each student, then submit the cards to the Admin for approval.</p>
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle report-card-list">
+                <thead class="table-dark">
+                    <tr><th>Student</th><th class="text-center">Subjects</th><th class="text-center">Average</th><th class="text-center">Position</th><th>Teacher's remark</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Rows)
+                    {
+                        <tr>
+                            <td>@r.Data.StudentName<div class="small text-muted">@r.Data.AdmissionNumber</div></td>
+                            <td class="text-center">@r.Data.SubjectsWithScores / @r.Data.Subjects.Count</td>
+                            <td class="text-center fw-bold">@r.Data.Format(r.Data.Average)</td>
+                            <td class="text-center">@(r.Data.Position?.ToString() ?? "—")</td>
+                            <td><textarea name="remarks[@r.StudentId]" class="form-control form-control-sm" rows="2" maxlength="@SchoolManagement.Controllers.ReportCardsController.MaxRemarkLength" aria-label="Remark for @r.Data.StudentName">@r.Remark</textarea></td>
+                            <td class="text-nowrap"><a asp-action="Card" asp-route-classId="@Model.Class.Id" asp-route-studentId="@r.StudentId" asp-route-term="@Model.Term">Preview</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="card">
+            <div class="card-body d-grid gap-2">
+                <label class="form-label small mb-0" for="note">Note to the Admin (optional)</label>
+                <textarea name="note" id="note" class="form-control" rows="2" maxlength="1000">@b?.SubmitNote</textarea>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="submit" name="submit" value="true" class="btn btn-primary">Submit to Admin for approval</button>
+                    <button type="submit" name="submit" value="false" class="btn btn-outline-secondary">Save remarks</button>
+                </div>
+            </div>
+        </div>
+    </form>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle report-card-list">
+            <thead class="table-dark">
+                <tr><th>Student</th><th class="text-center">Subjects</th><th class="text-center">Average</th><th class="text-center">Position</th><th>Teacher's remark</th><th>Gets it</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model.Rows)
+                {
+                    <tr>
+                        <td>@r.Data.StudentName<div class="small text-muted">@r.Data.AdmissionNumber</div></td>
+                        <td class="text-center">@r.Data.SubjectsWithScores / @r.Data.Subjects.Count</td>
+                        <td class="text-center fw-bold">@r.Data.Format(r.Data.Average)</td>
+                        <td class="text-center">@(r.Data.Position?.ToString() ?? "—")</td>
+                        <td class="small">@(r.Remark ?? "—")</td>
+                        <td class="small">
+                            @(r.HasLogin ? "Student" : "")@(r.HasLogin && r.Parents > 0 ? " + " : "")@(r.Parents > 0 ? $"{r.Parents} parent(s)" : "")
+                            @if (!r.HasLogin && r.Parents == 0) { <span class="text-danger">No account</span> }
+                            @if (r.SentAt != null) { <div class="text-muted">Sent @r.SentAt.Value.ToLocalTime().ToString("d MMM")</div> }
+                        </td>
+                        <td class="text-nowrap"><a asp-action="Card" asp-route-classId="@Model.Class.Id" asp-route-studentId="@r.StudentId" asp-route-term="@Model.Term">View card</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

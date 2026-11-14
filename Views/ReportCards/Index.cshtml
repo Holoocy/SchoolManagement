@@ -1,0 +1,71 @@
+@model SchoolManagement.Models.ReportCardsIndexViewModel
+@using SchoolManagement.Models
+@{
+    ViewData["Title"] = Model.IsAdmin ? "Report Approval" : "Report Cards";
+    var pending = Model.Grades.Count(g => g.Status == ReportCardStatus.Pending);
+}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+        <h2 class="mb-1">@ViewData["Title"]</h2>
+        <p class="text-muted small mb-0">
+            @if (Model.IsAdmin)
+            {
+                <text>Teachers submit each grade's report cards for approval. Approve them, or send them back with a note. Once approved, the teacher sends them to students and parents in one click.</text>
+            }
+            else
+            {
+                <text>Add remarks and submit each grade's report cards to the Admin. Once approved, send every card to the students and their parents in one click.</text>
+            }
+        </p>
+    </div>
+    <form method="get" class="d-flex gap-2 align-items-center">
+        <label class="small text-muted" for="term">Term</label>
+        <select name="term" id="term" class="form-select form-select-sm" onchange="this.form.submit()">
+            @foreach (var t in Model.Terms)
+            {
+                <option value="@t" selected="@(t == Model.Term)">@t@(t == Model.CurrentTerm ? " (current)" : "")</option>
+            }
+        </select>
+    </form>
+</div>
+
+@if (Model.IsAdmin && pending > 0)
+{
+    <div class="alert alert-warning">@pending grade(s) waiting for your approval.</div>
+}
+
+@if (!Model.Grades.Any())
+{
+    <p class="empty-state">@(Model.IsAdmin ? "No grades yet." : "You have no grades assigned. Ask an administrator to assign them.")</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr><th>Grade</th><th class="text-center">Students</th><th>Status</th><th>Submitted</th><th>Reviewed</th><th>Sent</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var g in Model.Grades)
+                {
+                    var b = g.Batch;
+                    <tr>
+                        <td class="fw-semibold">@g.Class.Name</td>
+                        <td class="text-center">@g.Students</td>
+                        <td><span class="status-badge @ReportCardStatus.Badge(g.Status)">@ReportCardStatus.Label(g.Status)</span></td>
+                        <td class="small">@(b?.SubmittedAt != null ? $"{b.SubmittedByName}, {b.SubmittedAt.Value.ToLocalTime():d MMM}" : "—")</td>
+                        <td class="small">@(b?.ReviewedAt != null ? $"{b.ReviewedByName}, {b.ReviewedAt.Value.ToLocalTime():d MMM}" : "—")</td>
+                        <td class="small">@(b?.SentAt != null ? $"{b.SentAt.Value.ToLocalTime():d MMM yyyy}" : "—")</td>
+                        <td class="text-end">
+                            <a class="btn btn-sm @(Model.IsAdmin && g.Status == ReportCardStatus.Pending || !Model.IsAdmin && g.Status == ReportCardStatus.Approved ? "btn-primary" : "btn-outline-secondary")"
+                               asp-action="Grade" asp-route-classId="@g.Class.Id" asp-route-term="@Model.Term">
+                                @(Model.IsAdmin && g.Status == ReportCardStatus.Pending ? "Review" : !Model.IsAdmin && g.Status == ReportCardStatus.Approved ? "Send" : "Open")
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
