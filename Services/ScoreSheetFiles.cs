@@ -89,6 +89,21 @@ public class ScoreSheetFiles
     private static string Csv(string value) =>
         value.IndexOfAny(new[] { ',', '"', '\n', '\r', ';' }) >= 0 ? "\"" + value.Replace("\"", "\"\"") + "\"" : value;
 
+    // (heading, column) colours, one pair per subject in turn.
+    private static readonly (string Strong, string Light)[] SubjectColours =
+    {
+        ("#9DC3E6", "#EAF2FA"), // blue
+        ("#A9D18E", "#EEF6E8"), // green
+        ("#F4B183", "#FDF0E7"), // orange
+        ("#C9B3E6", "#F3EEF9"), // purple
+        ("#FFD966", "#FFF8E1"), // yellow
+        ("#8FD3CC", "#E8F6F5"), // teal
+        ("#F2A7C6", "#FCEDF3"), // pink
+        ("#D6C49A", "#F6F1E6"), // sand
+        ("#B4C7E7", "#EEF2FA"), // slate
+        ("#E6A3A3", "#FBECEC")  // red
+    };
+
     public static byte[] TemplateXlsx(ScoreTemplate template, GradingScheme scheme, string term)
     {
         var columns = ScoreColumns(template, scheme);
@@ -108,16 +123,23 @@ public class ScoreSheetFiles
         header.Style.Fill.BackgroundColor = XLColor.FromHtml("#E9EEF5");
         sheet.Row(1).Height = 48;
 
-        // Alternate the heading colour per subject so each subject's columns stand out.
+        // Each subject gets its own colour: a strong shade on its Assignment, CA and Exam headings
+        // and a light tint of the same colour down its columns, with a thick line between subjects.
         var subjectIndex = template.Subjects.Select((s, i) => (s.Id, i)).ToDictionary(x => x.Id, x => x.i);
         for (var c = 0; c < columns.Count; c++)
         {
+            var (strong, light) = SubjectColours[subjectIndex[columns[c].SubjectId] % SubjectColours.Length];
             var cell = sheet.Cell(1, first + c);
-            cell.Style.Fill.BackgroundColor = XLColor.FromHtml(subjectIndex[columns[c].SubjectId] % 2 == 0 ? "#DCE8F7" : "#E6F2E1");
+            cell.Style.Fill.BackgroundColor = XLColor.FromHtml(strong);
             cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-            if (c > 0 && columns[c].SubjectId != columns[c - 1].SubjectId)
-                sheet.Range(1, first + c, lastRow, first + c).Style.Border.LeftBorder = XLBorderStyleValues.Medium;
+            if (template.Students.Count > 0)
+                sheet.Range(2, first + c, lastRow, first + c).Style.Fill.BackgroundColor = XLColor.FromHtml(light);
+            if (c == 0 || columns[c].SubjectId != columns[c - 1].SubjectId)
+                sheet.Range(1, first + c, lastRow, first + c).Style.Border.LeftBorder = XLBorderStyleValues.Thick;
         }
+        if (columns.Count > 0)
+            sheet.Range(1, lastCol, lastRow, lastCol).Style.Border.RightBorder = XLBorderStyleValues.Thick;
+        sheet.Range(1, 1, 1, lastCol).Style.Border.BottomBorder = XLBorderStyleValues.Medium;
 
         var row = 2;
         foreach (var st in template.Students)
@@ -131,7 +153,12 @@ public class ScoreSheetFiles
             {
                 var cell = sheet.Cell(row, first + c);
                 if (st.Scores.TryGetValue((columns[c].SubjectId, columns[c].Component), out var v)) cell.Value = v;
-                if (!st.Takes.Contains(columns[c].SubjectId)) cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#EEEEEE");
+                if (!st.Takes.Contains(columns[c].SubjectId))
+                {
+                    cell.Style.Fill.PatternType = XLFillPatternValues.LightUp;
+                    cell.Style.Fill.PatternColor = XLColor.FromHtml("#9E9E9E");
+                    cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#E0E0E0");
+                }
             }
             row++;
         }
@@ -160,7 +187,8 @@ public class ScoreSheetFiles
             $"Assignment is out of {scheme.AssignmentWeight}, CA is out of {scheme.CaWeight}, Exam is out of {scheme.ExamWeight} (total {scheme.Total}).",
             "There is one row per student and one column for each subject's Assignment, CA and Exam (e.g. \"Mathematics CA\").",
             "Type each student's scores in their row. Leave a cell empty to keep the score already in the app.",
-            "Grey cells are subjects the student doesn't take; leave them empty.",
+            "Each subject has its own colour, so its Assignment, CA and Exam columns are easy to tell apart from the next subject's.",
+            "Grey striped cells are subjects the student doesn't take; leave them empty.",
             "You can delete any columns you are not uploading (for example every Assignment column). The rest are still uploaded.",
             "Students are matched by Student ID first, then by name. Don't change the Student ID column or the subject names in the headings.",
             "You can add more CA columns for a subject (e.g. \"Mathematics 1st CA\", \"Mathematics 2nd CA\"); they are added together and must not exceed the CA total.",

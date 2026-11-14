@@ -1,144 +1,144 @@
-@model SchoolManagement.Models.ScoreUploadViewModel
-@{
-    ViewData["Title"] = "Upload Scores";
-    var s = Model.Scheme;
-    var r = Model.Result;
-}
-
-<div class="mb-3">
-    <a asp-action="Index" asp-route-classId="@Model.ClassId" asp-route-subjectId="@Model.SubjectId" asp-route-term="@Model.Term" class="btn btn-outline-secondary btn-sm">Back to score sheet</a>
-</div>
-
-<h2 class="mb-1">Upload Scores</h2>
-<p class="text-muted">Fill in Assignment, CA and Exam scores for many students and subjects in Excel, then upload the sheet. There is one row per student, matched by Student ID or name, and a column for each subject's Assignment, CA and Exam.</p>
-
-@if (r != null)
-{
-    if (r.Errors.Any())
-    {
-        <div class="alert alert-danger">
-            <strong>The file wasn't uploaded.</strong>
-            <ul class="mb-0">@foreach (var e in r.Errors) { <li>@e</li> }</ul>
-            @if (r.ColumnWarnings.Any())
-            {
-                <ul class="mb-0 small upload-errors">@foreach (var e in r.ColumnWarnings) { <li>@e</li> }</ul>
-            }
-        </div>
-    }
-    else
-    {
-        <div class="alert @(r.RowErrors.Any() ? "alert-warning" : "alert-success")">
-            <strong>@r.RowsImported row(s) uploaded, @r.ScoresChanged score(s) changed</strong> for @Model.Term.
-            @if (r.ColumnsFound.Any())
-            {
-                <div class="small">Columns read: @string.Join("; ", r.ColumnsFound). Scores for columns that weren't in the file were left as they are.</div>
-            }
-            @if (r.ColumnWarnings.Any())
-            {
-                <div class="mt-2"><strong>@r.ColumnWarnings.Count column(s) skipped:</strong></div>
-                <ul class="mb-0 small upload-errors">@foreach (var e in r.ColumnWarnings) { <li>@e</li> }</ul>
-            }
-            @if (r.RowErrors.Any())
-            {
-                <div class="mt-2"><strong>@r.RowErrors.Count row(s) skipped</strong>. Fix them and upload the file again (rows already uploaded are simply updated):</div>
-                <ul class="mb-0 small upload-errors">@foreach (var e in r.RowErrors) { <li>@e</li> }</ul>
-            }
-        </div>
-    }
-}
-
-<div class="panel-grid">
-    <div class="panel">
-        <div class="panel-header"><h2 class="panel-title">1. Download a template</h2></div>
-        <div class="panel-body panel-body-padded">
-            <p class="small text-muted">The template has one row per student (ID and name) and columns such as "Mathematics Assignment", "Mathematics CA", "Mathematics Exam" for each subject. Scores already recorded for the term are filled in.</p>
-            <form method="get" asp-action="Template" class="d-grid gap-2">
-                <div>
-                    <label class="form-label small mb-1" for="tClass">Grade</label>
-                    <select name="classId" id="tClass" class="form-select">
-                        <option value="">@(Model.IsAdmin ? "All grades" : "All my grades")</option>
-                        @foreach (var c in Model.Classes)
-                        {
-                            <option value="@c.Id" selected="@(c.Id == Model.ClassId)">@c.Name</option>
-                        }
-                    </select>
-                </div>
-                <div>
-                    <label class="form-label small mb-1" for="tSubject">Subject</label>
-                    <select name="subjectId" id="tSubject" class="form-select">
-                        <option value="">@(Model.IsAdmin ? "All subjects each student takes" : "All my subjects")</option>
-                        @foreach (var sub in Model.Subjects)
-                        {
-                            <option value="@sub.Id" selected="@(sub.Id == Model.SubjectId)">@sub.Name</option>
-                        }
-                    </select>
-                </div>
-                <div>
-                    <label class="form-label small mb-1" for="tTerm">Term</label>
-                    <select name="term" id="tTerm" class="form-select">
-                        @foreach (var t in Model.Terms)
-                        {
-                            <option value="@t" selected="@(t == Model.Term)">@t</option>
-                        }
-                    </select>
-                </div>
-                <div class="d-flex gap-2 flex-wrap">
-                    <button type="submit" name="format" value="xlsx" class="btn btn-primary">Download Excel (.xlsx)</button>
-                    <button type="submit" name="format" value="csv" class="btn btn-outline-secondary">Download CSV</button>
-                </div>
-                @if (Model.IsAdmin)
-                {
-                    <p class="small text-muted mb-0">With "All subjects", the sheet has columns for every subject linked to the students' grades on the Subjects page (or given to them individually). In Excel, subjects a student doesn't take are grey.</p>
-                }
-            </form>
-        </div>
-    </div>
-
-    <div class="panel">
-        <div class="panel-header"><h2 class="panel-title">2. Upload the filled sheet</h2></div>
-        <div class="panel-body panel-body-padded">
-            <form method="post" asp-action="Upload" enctype="multipart/form-data" class="d-grid gap-2">
-                @Html.AntiForgeryToken()
-                <div>
-                    <label class="form-label small mb-1" for="file">CSV or Excel file</label>
-                    <input type="file" name="file" id="file" class="form-control" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
-                </div>
-                <div>
-                    <label class="form-label small mb-1" for="uTerm">Term the scores are for</label>
-                    <select name="term" id="uTerm" class="form-select">
-                        @foreach (var t in Model.Terms)
-                        {
-                            <option value="@t" selected="@(t == Model.Term)">@t</option>
-                        }
-                    </select>
-                </div>
-                <div>
-                    <label class="form-label small mb-1" for="uSubject">Subject (only for sheets whose columns are just "Assignment", "CA", "Exam")</label>
-                    <select name="subjectId" id="uSubject" class="form-select">
-                        <option value="">Subjects are in the column headings</option>
-                        @foreach (var sub in Model.Subjects)
-                        {
-                            <option value="@sub.Id">@sub.Name</option>
-                        }
-                    </select>
-                </div>
-                <div><button type="submit" class="btn btn-primary">Upload scores</button></div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<div class="card mt-3">
-    <div class="card-body small">
-        <strong>How the file is read</strong>
-        <ul class="mb-0">
-            <li>Columns are named by subject and part, e.g. <strong>Mathematics Assignment</strong> (out of @s.AssignmentWeight), <strong>Mathematics CA</strong> (out of @s.CaWeight) and <strong>Mathematics Exam</strong> (out of @s.ExamWeight). Subjects are matched by name or code, and a short name works if only one subject starts with it ("Eng").</li>
-            <li>Any column can be left out (for example every Assignment column): the upload still goes through and the missing parts keep their current scores.</li>
-            <li>An empty cell keeps the score already in the app. Several CA columns for one subject (e.g. "Mathematics 1st CA", "Mathematics 2nd CA") are added together.</li>
-            <li>Students are matched by <strong>Student ID</strong> (admission number) first, then by <strong>name</strong>.</li>
-            <li>Rows or columns that can't be matched are skipped and listed; everything else is saved. Uploading the same file again simply updates the scores.</li>
-            <li>Sheets from the old layout (one row per student and subject, with a Subject column and plain Assignment, CA and Exam columns) can still be uploaded.</li>
-            <li>Excel files must be .xlsx (Excel 2007 or later). Up to @(SchoolManagement.Services.ScoreSheetFiles.MaxRows) rows and 5 MB.</li>
-        </ul>
-    </div>
-</div>
+@model SchoolManagement.Models.ScoreUploadViewModel
+@{
+    ViewData["Title"] = "Upload Scores";
+    var s = Model.Scheme;
+    var r = Model.Result;
+}
+
+<div class="mb-3">
+    <a asp-action="Index" asp-route-classId="@Model.ClassId" asp-route-subjectId="@Model.SubjectId" asp-route-term="@Model.Term" class="btn btn-outline-secondary btn-sm">Back to score sheet</a>
+</div>
+
+<h2 class="mb-1">Upload Scores</h2>
+<p class="text-muted">Fill in Assignment, CA and Exam scores for many students and subjects in Excel, then upload the sheet. There is one row per student, matched by Student ID or name, and a column for each subject's Assignment, CA and Exam.</p>
+
+@if (r != null)
+{
+    if (r.Errors.Any())
+    {
+        <div class="alert alert-danger">
+            <strong>The file wasn't uploaded.</strong>
+            <ul class="mb-0">@foreach (var e in r.Errors) { <li>@e</li> }</ul>
+            @if (r.ColumnWarnings.Any())
+            {
+                <ul class="mb-0 small upload-errors">@foreach (var e in r.ColumnWarnings) { <li>@e</li> }</ul>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert @(r.RowErrors.Any() ? "alert-warning" : "alert-success")">
+            <strong>@r.RowsImported row(s) uploaded, @r.ScoresChanged score(s) changed</strong> for @Model.Term.
+            @if (r.ColumnsFound.Any())
+            {
+                <div class="small">Columns read: @string.Join("; ", r.ColumnsFound). Scores for columns that weren't in the file were left as they are.</div>
+            }
+            @if (r.ColumnWarnings.Any())
+            {
+                <div class="mt-2"><strong>@r.ColumnWarnings.Count column(s) skipped:</strong></div>
+                <ul class="mb-0 small upload-errors">@foreach (var e in r.ColumnWarnings) { <li>@e</li> }</ul>
+            }
+            @if (r.RowErrors.Any())
+            {
+                <div class="mt-2"><strong>@r.RowErrors.Count row(s) skipped</strong>. Fix them and upload the file again (rows already uploaded are simply updated):</div>
+                <ul class="mb-0 small upload-errors">@foreach (var e in r.RowErrors) { <li>@e</li> }</ul>
+            }
+        </div>
+    }
+}
+
+<div class="panel-grid">
+    <div class="panel">
+        <div class="panel-header"><h2 class="panel-title">1. Download a template</h2></div>
+        <div class="panel-body panel-body-padded">
+            <p class="small text-muted">The template has one row per student (ID and name) and columns such as "Mathematics Assignment", "Mathematics CA", "Mathematics Exam" for each subject. Scores already recorded for the term are filled in.</p>
+            <form method="get" asp-action="Template" class="d-grid gap-2">
+                <div>
+                    <label class="form-label small mb-1" for="tClass">Grade</label>
+                    <select name="classId" id="tClass" class="form-select">
+                        <option value="">@(Model.IsAdmin ? "All grades" : "All my grades")</option>
+                        @foreach (var c in Model.Classes)
+                        {
+                            <option value="@c.Id" selected="@(c.Id == Model.ClassId)">@c.Name</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label small mb-1" for="tSubject">Subject</label>
+                    <select name="subjectId" id="tSubject" class="form-select">
+                        <option value="">@(Model.IsAdmin ? "All subjects each student takes" : "All my subjects")</option>
+                        @foreach (var sub in Model.Subjects)
+                        {
+                            <option value="@sub.Id" selected="@(sub.Id == Model.SubjectId)">@sub.Name</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label small mb-1" for="tTerm">Term</label>
+                    <select name="term" id="tTerm" class="form-select">
+                        @foreach (var t in Model.Terms)
+                        {
+                            <option value="@t" selected="@(t == Model.Term)">@t</option>
+                        }
+                    </select>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="submit" name="format" value="xlsx" class="btn btn-primary">Download Excel (.xlsx)</button>
+                    <button type="submit" name="format" value="csv" class="btn btn-outline-secondary">Download CSV</button>
+                </div>
+                @if (Model.IsAdmin)
+                {
+                    <p class="small text-muted mb-0">With "All subjects", the sheet has columns for every subject linked to the students' grades on the Subjects page (or given to them individually). In Excel each subject's columns have their own colour, and subjects a student doesn't take are grey.</p>
+                }
+            </form>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header"><h2 class="panel-title">2. Upload the filled sheet</h2></div>
+        <div class="panel-body panel-body-padded">
+            <form method="post" asp-action="Upload" enctype="multipart/form-data" class="d-grid gap-2">
+                @Html.AntiForgeryToken()
+                <div>
+                    <label class="form-label small mb-1" for="file">CSV or Excel file</label>
+                    <input type="file" name="file" id="file" class="form-control" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+                </div>
+                <div>
+                    <label class="form-label small mb-1" for="uTerm">Term the scores are for</label>
+                    <select name="term" id="uTerm" class="form-select">
+                        @foreach (var t in Model.Terms)
+                        {
+                            <option value="@t" selected="@(t == Model.Term)">@t</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label small mb-1" for="uSubject">Subject (only for sheets whose columns are just "Assignment", "CA", "Exam")</label>
+                    <select name="subjectId" id="uSubject" class="form-select">
+                        <option value="">Subjects are in the column headings</option>
+                        @foreach (var sub in Model.Subjects)
+                        {
+                            <option value="@sub.Id">@sub.Name</option>
+                        }
+                    </select>
+                </div>
+                <div><button type="submit" class="btn btn-primary">Upload scores</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body small">
+        <strong>How the file is read</strong>
+        <ul class="mb-0">
+            <li>Columns are named by subject and part, e.g. <strong>Mathematics Assignment</strong> (out of @s.AssignmentWeight), <strong>Mathematics CA</strong> (out of @s.CaWeight) and <strong>Mathematics Exam</strong> (out of @s.ExamWeight). Subjects are matched by name or code, and a short name works if only one subject starts with it ("Eng").</li>
+            <li>Any column can be left out (for example every Assignment column): the upload still goes through and the missing parts keep their current scores.</li>
+            <li>An empty cell keeps the score already in the app. Several CA columns for one subject (e.g. "Mathematics 1st CA", "Mathematics 2nd CA") are added together.</li>
+            <li>Students are matched by <strong>Student ID</strong> (admission number) first, then by <strong>name</strong>.</li>
+            <li>Rows or columns that can't be matched are skipped and listed; everything else is saved. Uploading the same file again simply updates the scores.</li>
+            <li>Sheets from the old layout (one row per student and subject, with a Subject column and plain Assignment, CA and Exam columns) can still be uploaded.</li>
+            <li>Excel files must be .xlsx (Excel 2007 or later). Up to @(SchoolManagement.Services.ScoreSheetFiles.MaxRows) rows and 5 MB.</li>
+        </ul>
+    </div>
+</div>
