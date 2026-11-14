@@ -214,32 +214,43 @@ public class ScoresController : Controller
         var recorded = await _results.ComputeAsync(studentIds,
             subjectId != null ? new List<int> { subjectId.Value } : scope.SubjectIds, term, scheme);
 
-        var rows = new List<ScoreTemplateRow>();
+        // Columns: the chosen subject, or every subject the students take (all the user's subjects if none are linked).
+        var takes = students.ToDictionary(s => s.Id, s =>
+        {
+            var set = taken.TryGetValue(s.Id, out var t) ? t.Where(subjects.ContainsKey).ToHashSet() : new HashSet<int>();
+            set.UnionWith(recorded.Where(r => r.Key.StudentId == s.Id && r.Value.HasAny && subjects.ContainsKey(r.Key.SubjectId)).Select(r => r.Key.SubjectId));
+            return set;
+        });
+        var columnIds = subjectId != null ? new List<int> { subjectId.Value } : takes.Values.SelectMany(x => x).Distinct().ToList();
+        if (columnIds.Count == 0) columnIds = subjects.Keys.ToList();
+        var duplicateNames = columnIds.GroupBy(id => subjects[id].Name.Trim().ToLowerInvariant()).Where(g => g.Count() > 1).SelectMany(g => g).ToHashSet();
+
+        var template = new ScoreTemplate
+        {
+            Subjects = columnIds.OrderBy(id => subjects[id].Name).Select(id => new ScoreTemplateSubject
+            {
+                Id = id,
+                Header = duplicateNames.Contains(id) ? $"{subjects[id].Name.Trim()} {subjects[id].Code.Trim()}" : subjects[id].Name.Trim()
+            }).ToList()
+        };
         foreach (var student in students)
         {
-            IEnumerable<int> subjectIds;
-            if (subjectId != null) subjectIds = new[] { subjectId.Value };
-            else
+            var row = new ScoreTemplateStudent
             {
-                var mine = taken.TryGetValue(student.Id, out var t) ? t.Where(subjects.ContainsKey).ToList() : new List<int>();
-                // A teacher's subjects may not be linked to their grades yet; list them all.
-                subjectIds = mine.Count == 0 && !scope.IsAdmin ? subjects.Keys : mine;
-            }
-
-            foreach (var sid in subjectIds.Where(subjects.ContainsKey).OrderBy(id => subjects[id].Name))
+                StudentId = student.AdmissionNumber,
+                StudentName = student.FullName,
+                Grade = student.Class?.Name ?? string.Empty,
+                // A student with no linked subjects isn't greyed out anywhere.
+                Takes = takes[student.Id].Count > 0 ? takes[student.Id] : columnIds.ToHashSet()
+            };
+            foreach (var sid in columnIds)
             {
-                recorded.TryGetValue((student.Id, sid), out var r);
-                rows.Add(new ScoreTemplateRow
-                {
-                    StudentId = student.AdmissionNumber,
-                    StudentName = student.FullName,
-                    Grade = student.Class?.Name ?? string.Empty,
-                    Subject = subjects[sid].Name,
-                    Assignment = r?.Assignment.RecordedExact,
-                    Ca = r?.Ca.RecordedExact,
-                    Exam = r?.Exam.RecordedExact
-                });
+                if (!recorded.TryGetValue((student.Id, sid), out var r)) continue;
+                if (r.Assignment.RecordedExact is { } a) row.Scores[(sid, ScoreComponents.Assignment)] = a;
+                if (r.Ca.RecordedExact is { } c) row.Scores[(sid, ScoreComponents.Ca)] = c;
+                if (r.Exam.RecordedExact is { } x) row.Scores[(sid, ScoreComponents.Exam)] = x;
             }
+            template.Students.Add(row);
         }
 
         var gradeName = classId != null ? students.FirstOrDefault()?.Class?.Name
@@ -248,8 +259,8 @@ public class ScoresController : Controller
         var fileName = Slug($"scores {gradeName} {subjectName} {term}");
 
         return string.Equals(format, "csv", StringComparison.OrdinalIgnoreCase)
-            ? File(ScoreSheetFiles.TemplateCsv(rows, scheme), "text/csv", fileName + ".csv")
-            : File(ScoreSheetFiles.TemplateXlsx(rows, scheme, term), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName + ".xlsx");
+            ? File(ScoreSheetFiles.TemplateCsv(template, scheme), "text/csv", fileName + ".csv")
+            : File(ScoreSheetFiles.TemplateXlsx(template, scheme, term), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName + ".xlsx");
     }
 
     private static string Slug(string value) =>
