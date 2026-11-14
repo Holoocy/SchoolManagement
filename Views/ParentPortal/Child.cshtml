@@ -58,7 +58,7 @@
                         <li class="entity-list-item entity-list-item-static">
                             <div>
                                 <div class="entity-title">@s.Assignment?.Title</div>
-                                <div class="entity-meta">@s.Assignment?.Subject?.Name &middot; Due @s.Assignment?.DueDate.ToShortDateString()@(s.Grade != null ? $" · Grade: {s.Grade}%" : "")</div>
+                                <div class="entity-meta">@s.Assignment?.Subject?.Name &middot; Due @s.Assignment?.DueDate.ToShortDateString()@(s.Grade != null ? $" · Score: {s.ScoreText}" : "")</div>
                                 @if (!string.IsNullOrWhiteSpace(s.Assignment?.Description))
                                 {
                                     <div class="entity-meta">@s.Assignment.Description</div>

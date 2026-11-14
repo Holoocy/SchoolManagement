@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using SchoolManagement.Data;
 using SchoolManagement.Models;
+using SchoolManagement.Services;
 
 namespace SchoolManagement.Controllers;
 
@@ -12,10 +13,12 @@ namespace SchoolManagement.Controllers;
 public class AssignmentsController : Controller
 {
     private readonly ApplicationDbContext _context;
+    private readonly ResultsService _results;
 
-    public AssignmentsController(ApplicationDbContext context)
+    public AssignmentsController(ApplicationDbContext context, ResultsService results)
     {
         _context = context;
+        _results = results;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -143,6 +146,8 @@ public class AssignmentsController : Controller
             return View(assignment);
         }
 
+        // Counts towards the school's current term.
+        assignment.Term = (await _results.GetSchemeAsync()).CurrentTerm;
         _context.Add(assignment);
         await _context.SaveChangesAsync();
         var added = await AssignGradeStudentsAsync(assignment);
@@ -178,6 +183,13 @@ public class AssignmentsController : Controller
         }
 
         await ValidateGradeAsync(assignment.ClassId);
+        // Lowering the total marks can't leave a recorded score above it.
+        var highest = await _context.AssignmentSubmissions.Where(s => s.AssignmentId == id && s.Grade != null)
+            .MaxAsync(s => (decimal?)s.Grade);
+        if (highest != null && assignment.MaxScore < highest)
+        {
+            ModelState.AddModelError(nameof(Assignment.MaxScore), $"A student already has {highest:0.##}. Total marks can't be lower than that.");
+        }
         if (!ModelState.IsValid)
         {
             await PopulateSubjectsAsync(assignment.SubjectId);
@@ -185,6 +197,7 @@ public class AssignmentsController : Controller
             return View(assignment);
         }
 
+        assignment.Term = existing.Term; // the term never changes on edit
         _context.Update(assignment);
         await _context.SaveChangesAsync();
         var added = await AssignGradeStudentsAsync(assignment);
@@ -311,7 +324,7 @@ public class AssignmentsController : Controller
     {
         if (id == null) return NotFound();
 
-        var assignment = await _context.Assignments.Include(a => a.Subject).FirstOrDefaultAsync(a => a.Id == id);
+        var assignment = await _context.Assignments.Include(a => a.Subject).Include(a => a.Class).FirstOrDefaultAsync(a => a.Id == id);
         if (assignment == null) return NotFound();
         if (!await CanManageSubjectAsync(assignment.SubjectId)) return Forbid();
 
@@ -323,6 +336,7 @@ public class AssignmentsController : Controller
             {
                 SubmissionId = s.Id,
                 StudentName = s.Student!.FullName,
+                AdmissionNumber = s.Student.AdmissionNumber,
                 Status = s.Status,
                 Grade = s.Grade,
                 Feedback = s.Feedback
@@ -337,9 +351,34 @@ public class AssignmentsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Grade(int id, List<GradeSubmissionRow> submissions)
     {
-        var assignment = await _context.Assignments.FindAsync(id);
+        var assignment = await _context.Assignments.Include(a => a.Subject).Include(a => a.Class).FirstOrDefaultAsync(a => a.Id == id);
         if (assignment == null) return NotFound();
         if (!await CanManageSubjectAsync(assignment.SubjectId)) return Forbid();
+
+        // Scores are out of the assignment's total marks.
+        for (var i = 0; i < submissions.Count; i++)
+        {
+            ModelState.Remove($"submissions[{i}].StudentName");
+            var grade = submissions[i].Grade;
+            if (grade != null && (grade < 0 || grade > assignment.MaxScore))
+            {
+                ModelState.AddModelError($"submissions[{i}].Grade", $"Enter a score from 0 to {assignment.MaxScore}.");
+            }
+        }
+        if (!ModelState.IsValid)
+        {
+            var names = await _context.AssignmentSubmissions.Where(s => s.AssignmentId == id)
+                .Select(s => new { s.Id, Name = s.Student!.FirstName + " " + s.Student.LastName, s.Student.AdmissionNumber })
+                .ToDictionaryAsync(s => s.Id);
+            foreach (var row in submissions.Where(r => names.ContainsKey(r.SubmissionId)))
+            {
+                row.StudentName = names[row.SubmissionId].Name;
+                row.AdmissionNumber = names[row.SubmissionId].AdmissionNumber;
+            }
+            ViewBag.Assignment = assignment;
+            ViewBag.Error = "Some scores are out of range. Check the highlighted boxes.";
+            return View(submissions);
+        }
 
         var submissionIds = submissions.Select(r => r.SubmissionId).ToList();
         var entities = await _context.AssignmentSubmissions
@@ -351,7 +390,8 @@ public class AssignmentsController : Controller
             var entity = entities.FirstOrDefault(e => e.Id == row.SubmissionId);
             if (entity == null) continue;
 
-            entity.Status = row.Status;
+            // A score means the work has been graded.
+            entity.Status = row.Grade != null ? "Graded" : row.Status;
             entity.Grade = row.Grade;
             entity.Feedback = row.Feedback;
             if (row.Status == "Submitted" && entity.SubmittedOn == null)
@@ -361,7 +401,7 @@ public class AssignmentsController : Controller
         }
 
         await _context.SaveChangesAsync();
-        TempData["AssignmentSuccess"] = "Grades saved.";
+        TempData["AssignmentSuccess"] = $"Scores saved for \"{assignment.Title}\".";
         return RedirectToAction(nameof(Index));
     }
 
@@ -413,6 +453,7 @@ public class GradeSubmissionRow
 {
     public int SubmissionId { get; set; }
     public string StudentName { get; set; } = string.Empty;
+    public string? AdmissionNumber { get; set; }
     public string Status { get; set; } = "Assigned";
     public decimal? Grade { get; set; }
     public string? Feedback { get; set; }

@@ -1,15 +1,24 @@
 @model List<SchoolManagement.Controllers.GradeSubmissionRow>
 @{
     var assignment = (SchoolManagement.Models.Assignment)ViewBag.Assignment;
-    ViewData["Title"] = "Grade Assignment";
+    ViewData["Title"] = "Score Assignment";
+    var graded = Model.Count(r => r.Grade != null);
 }
 
 <div class="mb-3">
     <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
 </div>
 
-<h2>Grade: @assignment.Title</h2>
-<p class="text-muted">@assignment.Subject?.Name &middot; Due @assignment.DueDate.ToShortDateString()</p>
+<h2>Score: @assignment.Title</h2>
+<p class="text-muted">
+    @assignment.Subject?.Name@(assignment.Class != null ? $" · {assignment.Class.Name}" : "") &middot; Due @assignment.DueDate.ToShortDateString()
+    &middot; <strong>Out of @assignment.MaxScore marks</strong>@(assignment.Term != null ? $" · {assignment.Term}" : "")
+</p>
+
+@if (ViewBag.Error != null)
+{
+    <div class="alert alert-danger">@ViewBag.Error</div>
+}
 
 @if (!Model.Any())
 {
@@ -17,22 +26,30 @@
 }
 else
 {
-    <form asp-action="Grade" asp-route-id="@assignment.Id" method="post">
+    <p class="small text-muted">@graded of @Model.Count scored. Typing a score marks the work as Graded. Each student's assignment scores in a subject are added up and scaled to the Assignment part of their result on the <a asp-controller="Scores" asp-action="Index" asp-route-classId="@assignment.ClassId" asp-route-subjectId="@assignment.SubjectId">score sheet</a>.</p>
+    <form asp-action="Grade" asp-route-id="@assignment.Id" method="post" novalidate>
+        <div class="table-responsive">
         <table class="table table-striped table-bordered align-middle">
             <thead class="table-dark">
                 <tr>
                     <th>Student</th>
                     <th>Status</th>
-                    <th>Grade (0-100)</th>
+                    <th>Score (out of @assignment.MaxScore)</th>
                     <th>Feedback</th>
                 </tr>
             </thead>
             <tbody>
                 @for (var i = 0; i < Model.Count; i++)
                 {
+                    var key = $"submissions[{i}].Grade";
+                    var error = ViewData.ModelState.TryGetValue(key, out var entry) && entry.Errors.Count > 0 ? entry.Errors[0].ErrorMessage : null;
                     <tr>
                         <td>
                             @Model[i].StudentName
+                            @if (!string.IsNullOrEmpty(Model[i].AdmissionNumber))
+                            {
+                                <div class="small text-muted">@Model[i].AdmissionNumber</div>
+                            }
                             <input type="hidden" name="submissions[@i].SubmissionId" value="@Model[i].SubmissionId" />
                         </td>
                         <td>
@@ -43,7 +60,15 @@ else
                             </select>
                         </td>
                         <td>
-                            <input type="number" step="0.01" min="0" max="100" name="submissions[@i].Grade" value="@Model[i].Grade" class="form-control form-control-sm grade-input" style="max-width:110px;" data-status-target="status-@i" />
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="number" step="0.01" min="0" max="@assignment.MaxScore" name="submissions[@i].Grade" value="@Model[i].Grade?.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                                       class="form-control form-control-sm grade-input@(error != null ? " is-invalid" : "")" style="max-width:110px;" data-status-target="status-@i" />
+                                <span class="text-muted small">/ @assignment.MaxScore</span>
+                            </div>
+                            @if (error != null)
+                            {
+                                <div class="text-danger small">@error</div>
+                            }
                         </td>
                         <td>
                             <input type="text" name="submissions[@i].Feedback" value="@Model[i].Feedback" class="form-control form-control-sm" />
@@ -52,8 +77,9 @@ else
                 }
             </tbody>
         </table>
+        </div>
 
-        <button type="submit" class="btn btn-primary">Save Grades</button>
+        <button type="submit" class="btn btn-primary">Save Scores</button>
         <a asp-action="Index" class="btn btn-secondary">Cancel</a>
     </form>
 

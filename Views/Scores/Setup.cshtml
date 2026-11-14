@@ -1,0 +1,92 @@
+@model SchoolManagement.Models.GradingSetupViewModel
+@{
+    ViewData["Title"] = "Grading Setup";
+}
+
+<div class="entity-form-page entity-form-page--compact">
+    <header class="entity-form-header">
+        <div>
+            <p class="entity-form-eyebrow">Academic setup</p>
+            <h1>Grading setup</h1>
+            <p>Decide what each part of a subject result is worth, how scores are rounded, and the current term.</p>
+        </div>
+        <a asp-action="Index" class="entity-form-back-link">← Score sheet</a>
+    </header>
+
+    @if (TempData["ScoresSuccess"] != null)
+    {
+        <div class="alert alert-success">@TempData["ScoresSuccess"]</div>
+    }
+
+    <form method="post" asp-action="Setup" class="entity-form-card">
+        <div asp-validation-summary="ModelOnly" class="entity-form-error-summary" role="alert"></div>
+
+        <section class="entity-form-section" aria-labelledby="weights-heading">
+            <div class="entity-form-section-heading">
+                <span>01</span>
+                <div>
+                    <h2 id="weights-heading">What each part is worth</h2>
+                    <p>Together they must add up to 100, e.g. Assignment 10, CA 20, Exam 70. A student's assignments are added up and scaled to the Assignment mark; CA tests to the CA mark; exams to the Exam mark.</p>
+                </div>
+            </div>
+            <div class="entity-form-grid grading-weights">
+                <div class="entity-form-field"><label asp-for="AssignmentWeight" class="form-label">Assignment</label><input asp-for="AssignmentWeight" type="number" min="0" max="100" class="form-control weight-input" /><span asp-validation-for="AssignmentWeight" class="field-validation-error"></span></div>
+                <div class="entity-form-field"><label asp-for="CaWeight" class="form-label">CA (tests)</label><input asp-for="CaWeight" type="number" min="0" max="100" class="form-control weight-input" /><span asp-validation-for="CaWeight" class="field-validation-error"></span></div>
+                <div class="entity-form-field"><label asp-for="ExamWeight" class="form-label">Exam</label><input asp-for="ExamWeight" type="number" min="0" max="100" class="form-control weight-input" /><span asp-validation-for="ExamWeight" class="field-validation-error"></span></div>
+                <div class="entity-form-field"><span class="form-label">Total</span><div class="form-control-plaintext fw-bold" id="weightTotal">@(Model.AssignmentWeight + Model.CaWeight + Model.ExamWeight)</div></div>
+            </div>
+        </section>
+
+        <section class="entity-form-section" aria-labelledby="round-heading">
+            <div class="entity-form-section-heading">
+                <span>02</span>
+                <div><h2 id="round-heading">Rounding</h2><p>Each part is rounded, and the total is the sum of the rounded parts. E.g. assignments scoring 37 out of 40 with Assignment worth 10 gives 9.25, which is 9 in whole numbers.</p></div>
+            </div>
+            <div class="entity-form-grid">
+                <div class="entity-form-field">
+                    <label asp-for="ScoreDecimals" class="form-label">Round scores to</label>
+                    <select asp-for="ScoreDecimals" class="form-select">
+                        <option value="0">Whole numbers (9)</option>
+                        <option value="1">1 decimal place (9.3)</option>
+                        <option value="2">2 decimal places (9.25)</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <section class="entity-form-section entity-form-section--last" aria-labelledby="term-heading">
+            <div class="entity-form-section-heading">
+                <span>03</span>
+                <div><h2 id="term-heading">Current term</h2><p>New assignments, CA tests and exams count towards this term. Change it at the start of each term; earlier terms stay available in reports.</p></div>
+            </div>
+            <div class="entity-form-grid">
+                <div class="entity-form-field entity-form-field--wide">
+                    <label asp-for="CurrentTerm" class="form-label">Term name</label>
+                    <input asp-for="CurrentTerm" class="form-control" list="termList" placeholder="e.g. Second Term 2026/2027" />
+                    <datalist id="termList">@foreach (var t in Model.Terms) { <option value="@t"></option> }</datalist>
+                    <span asp-validation-for="CurrentTerm" class="field-validation-error"></span>
+                </div>
+            </div>
+        </section>
+
+        <footer class="entity-form-actions">
+            <span>Changing what each part is worth updates every result straight away, including uploaded scores.</span>
+            <div><button type="submit" class="btn btn-primary">Save grading</button></div>
+        </footer>
+    </form>
+</div>
+
+<script>
+    (function () {
+        var inputs = document.querySelectorAll('.weight-input');
+        var total = document.getElementById('weightTotal');
+        function sum() {
+            var t = 0;
+            inputs.forEach(function (i) { t += parseInt(i.value || '0', 10) || 0; });
+            total.textContent = t + (t === 100 ? '' : '  (must be 100)');
+            total.classList.toggle('text-danger', t !== 100);
+        }
+        inputs.forEach(function (i) { i.addEventListener('input', sum); });
+        sum();
+    })();
+</script>

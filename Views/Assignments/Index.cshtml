@@ -51,13 +51,13 @@ else
             <tr>
                 <td>@(item.Subject?.Name ?? "—")</td>
                 <td>@(item.Class?.Name ?? "—")</td>
-                <td>@item.Title</td>
+                <td>@item.Title <div class="small text-muted">Out of @item.MaxScore@(item.Term != null ? $" · {item.Term}" : "")</div></td>
                 <td>@item.DueDate.ToShortDateString()</td>
                 <td><span class="status-badge status-@displayStatus.ToLower().Replace(" ", "-")">@displayStatus</span></td>
                 <td class="text-nowrap">
                     <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id">Edit</a>
                     <a class="btn btn-sm btn-outline-secondary" asp-action="AssignStudents" asp-route-id="@item.Id">Assign Students</a>
-                    <a class="btn btn-sm btn-outline-secondary" asp-action="Grade" asp-route-id="@item.Id">Grade</a>
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Grade" asp-route-id="@item.Id">Score</a>
                     <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.Id">Delete</a>
                 </td>
             </tr>

@@ -1,0 +1,154 @@
+@model SchoolManagement.Models.ScoreSheetViewModel
+@using SchoolManagement.Models
+@{
+    ViewData["Title"] = "Score Sheet";
+    var s = Model.Scheme;
+    var components = new[]
+    {
+        (Key: ScoreComponents.Assignment, Name: "Assignment", Field: "Assignment", Weight: s.AssignmentWeight),
+        (Key: ScoreComponents.Ca, Name: "CA", Field: "Ca", Weight: s.CaWeight),
+        (Key: ScoreComponents.Exam, Name: "Exam", Field: "Exam", Weight: s.ExamWeight)
+    }.Where(c => c.Weight > 0).ToArray();
+    string Fmt(decimal? v) => v?.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) ?? "";
+}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+        <h2 class="mb-1">Score Sheet</h2>
+        <p class="text-muted small mb-0">
+            Assignment @s.AssignmentWeight + CA @s.CaWeight + Exam @s.ExamWeight = @s.Total &middot; rounded to @(s.Decimals == 0 ? "whole numbers" : $"{s.Decimals} decimal place(s)")
+            @if (Model.IsAdmin)
+            {
+                <text>&middot; <a asp-action="Setup">Change grading</a></text>
+            }
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-outline-secondary" asp-action="Upload" asp-route-classId="@Model.ClassId" asp-route-subjectId="@Model.SubjectId" asp-route-term="@Model.Term">Upload CSV / Excel</a>
+        <a class="btn btn-outline-secondary" asp-controller="Reports" asp-action="Results" asp-route-classId="@Model.ClassId" asp-route-term="@Model.Term">Results report</a>
+    </div>
+</div>
+
+@if (TempData["ScoresSuccess"] != null)
+{
+    <div class="alert alert-success">@TempData["ScoresSuccess"]</div>
+}
+@if (Model.HasErrors)
+{
+    <div class="alert alert-danger">Nothing was saved. Some scores are outside the allowed range; check the highlighted boxes.</div>
+}
+
+@if (!Model.Classes.Any() || !Model.Subjects.Any())
+{
+    <div class="alert alert-info">
+        @(Model.IsAdmin ? "Add grades and subjects first." : "You need at least one grade and one subject assigned to you. Ask an administrator to assign them.")
+    </div>
+}
+else
+{
+    <form method="get" class="d-flex flex-wrap gap-2 mb-3 align-items-end">
+        <div style="min-width:200px">
+            <label class="form-label small mb-1" for="classId">Grade</label>
+            <select name="classId" id="classId" class="form-select" onchange="this.form.submit()">
+                <option value="">Choose a grade</option>
+                @foreach (var c in Model.Classes)
+                {
+                    <option value="@c.Id" selected="@(c.Id == Model.ClassId)">@c.Name</option>
+                }
+            </select>
+        </div>
+        <div style="min-width:200px">
+            <label class="form-label small mb-1" for="subjectId">Subject</label>
+            <select name="subjectId" id="subjectId" class="form-select" onchange="this.form.submit()">
+                <option value="">Choose a subject</option>
+                @foreach (var sub in Model.Subjects)
+                {
+                    <option value="@sub.Id" selected="@(sub.Id == Model.SubjectId)">@sub.Name</option>
+                }
+            </select>
+        </div>
+        <div style="min-width:200px">
+            <label class="form-label small mb-1" for="term">Term</label>
+            <select name="term" id="term" class="form-select" onchange="this.form.submit()">
+                @foreach (var t in Model.Terms)
+                {
+                    <option value="@t" selected="@(t == Model.Term)">@t@(t == s.CurrentTerm ? " (current)" : "")</option>
+                }
+            </select>
+        </div>
+    </form>
+
+    @if (!Model.Ready)
+    {
+        <p class="empty-state">Choose a grade and a subject to see and record scores.</p>
+    }
+    else if (!Model.Rows.Any())
+    {
+        <p class="empty-state">There are no active students in @Model.ClassName.</p>
+    }
+    else
+    {
+        <p class="small text-muted">
+            Grey numbers are worked out from graded assignments, CA tests and exams taken in the app.
+            Type a score to record it instead (for example a paper test); clear a box to go back to the worked-out score.
+        </p>
+        <form method="post" asp-action="Index" novalidate>
+            <input type="hidden" name="classId" value="@Model.ClassId" />
+            <input type="hidden" name="subjectId" value="@Model.SubjectId" />
+            <input type="hidden" name="term" value="@Model.Term" />
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle score-sheet">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Student</th>
+                            @foreach (var c in components)
+                            {
+                                <th class="text-center">@c.Name <span class="fw-normal">(@c.Weight)</span></th>
+                            }
+                            <th class="text-center">Total (@s.Total)</th>
+                            <th class="text-center">Position</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.Rows.Count; i++)
+                        {
+                            var row = Model.Rows[i];
+                            <tr>
+                                <td>
+                                    <a asp-controller="Students" asp-action="Details" asp-route-id="@row.StudentId" asp-route-term="@Model.Term">@row.Name</a>
+                                    <div class="small text-muted">@row.AdmissionNumber</div>
+                                    <input type="hidden" name="rows[@i].StudentId" value="@row.StudentId" />
+                                </td>
+                                @foreach (var c in components)
+                                {
+                                    var part = row.Result.Get(c.Key);
+                                    var value = row.Posted.TryGetValue(c.Key, out var typed) ? typed : Fmt(part.RecordedExact);
+                                    var error = row.Errors.TryGetValue(c.Key, out var e) ? e : null;
+                                    <td class="text-center">
+                                        <input type="text" inputmode="decimal" name="rows[@i].@c.Field" value="@value"
+                                               class="form-control form-control-sm score-input mx-auto@(error != null ? " is-invalid" : "")"
+                                               placeholder="@(part.Auto != null ? s.Format(part.Auto) : "")" aria-label="@c.Name score for @row.Name" />
+                                        @if (error != null)
+                                        {
+                                            <div class="text-danger small">@error</div>
+                                        }
+                                        else if (part.Auto != null)
+                                        {
+                                            <div class="small text-muted" title="Worked out from @part.Items item(s) in the app">auto @s.Format(part.Auto)</div>
+                                        }
+                                    </td>
+                                }
+                                <td class="text-center fw-bold">@s.Format(row.Result.Total)</td>
+                                <td class="text-center">@(row.Position?.ToString() ?? "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                <button type="submit" class="btn btn-primary">Save scores</button>
+                <span class="small text-muted">@Model.ClassName &middot; @Model.SubjectName &middot; @Model.Term</span>
+            </div>
+        </form>
+    }
+}

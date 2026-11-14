@@ -32,6 +32,14 @@ public class Assignment : ITenantEntity
     [Display(Name = "Status")]
     public string Status { get; set; } = "In Progress";
 
+    // Highest score a student can get; scores are recorded out of this.
+    [Range(1, 1000, ErrorMessage = "Total marks must be between 1 and 1000.")]
+    [Display(Name = "Total marks")]
+    public int MaxScore { get; set; } = 100;
+
+    // Term the assignment counts towards (the school's current term when it was created).
+    public string? Term { get; set; }
+
     [Display(Name = "Created On")]
     [DataType(DataType.Date)]
     public DateTime CreatedOn { get; set; } = DateTime.UtcNow;

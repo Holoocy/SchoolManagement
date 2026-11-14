@@ -1,0 +1,138 @@
+@model SchoolManagement.Models.ResultsReportViewModel
+@{
+    ViewData["Title"] = "Results Broadsheet";
+    var s = Model.Scheme;
+    var single = Model.SubjectId != null;
+}
+
+<div class="mb-3">
+    <a asp-action="Index" asp-route-term="@Model.Term" class="btn btn-outline-secondary btn-sm">Back to reports</a>
+</div>
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+        <h2 class="mb-1">Results @(Model.ClassName != null ? $"— {Model.ClassName}" : "")</h2>
+        <p class="text-muted small mb-0">@Model.Term &middot; Assignment @s.AssignmentWeight + CA @s.CaWeight + Exam @s.ExamWeight = @s.Total@(Model.IsAdmin ? "" : " · your subjects only")</p>
+    </div>
+    @if (Model.ClassId != null)
+    {
+        <a class="btn btn-outline-secondary" asp-controller="Scores" asp-action="Index" asp-route-classId="@Model.ClassId" asp-route-subjectId="@Model.SubjectId" asp-route-term="@Model.Term">Open score sheet</a>
+    }
+</div>
+
+<form method="get" class="d-flex flex-wrap gap-2 mb-3 align-items-end">
+    <div style="min-width:200px">
+        <label class="form-label small mb-1" for="classId">Grade</label>
+        <select name="classId" id="classId" class="form-select" onchange="this.form.submit()">
+            <option value="">Choose a grade</option>
+            @foreach (var c in Model.Classes)
+            {
+                <option value="@c.Id" selected="@(c.Id == Model.ClassId)">@c.Name</option>
+            }
+        </select>
+    </div>
+    <div style="min-width:200px">
+        <label class="form-label small mb-1" for="subjectId">Subject</label>
+        <select name="subjectId" id="subjectId" class="form-select" onchange="this.form.submit()">
+            <option value="">@(Model.IsAdmin ? "All subjects" : "All my subjects")</option>
+            @foreach (var sub in Model.SubjectOptions)
+            {
+                <option value="@sub.Id" selected="@(sub.Id == Model.SubjectId)">@sub.Name</option>
+            }
+        </select>
+    </div>
+    <div style="min-width:200px">
+        <label class="form-label small mb-1" for="term">Term</label>
+        <select name="term" id="term" class="form-select" onchange="this.form.submit()">
+            @foreach (var t in Model.Terms)
+            {
+                <option value="@t" selected="@(t == Model.Term)">@t@(t == s.CurrentTerm ? " (current)" : "")</option>
+            }
+        </select>
+    </div>
+</form>
+
+@if (Model.ClassId == null)
+{
+    <p class="empty-state">@(Model.Classes.Any() ? "Choose a grade to see its results." : "No grades available.")</p>
+}
+else if (!Model.Rows.Any())
+{
+    <p class="empty-state">There are no active students in @Model.ClassName.</p>
+}
+else if (!Model.Columns.Any())
+{
+    <p class="empty-state">No subjects are linked to @Model.ClassName and no scores have been recorded for @Model.Term yet. Pick a subject above or record scores on the score sheet.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle broadsheet">
+            <thead class="table-dark">
+                <tr>
+                    <th class="text-center">Pos.</th>
+                    <th class="sticky-col">Student</th>
+                    @if (single)
+                    {
+                        <th class="text-center">Assignment (@s.AssignmentWeight)</th>
+                        <th class="text-center">CA (@s.CaWeight)</th>
+                        <th class="text-center">Exam (@s.ExamWeight)</th>
+                        <th class="text-center">Total (@s.Total)</th>
+                    }
+                    else
+                    {
+                        @foreach (var sub in Model.Columns)
+                        {
+                            <th class="text-center"><a class="broadsheet-subject" asp-route-classId="@Model.ClassId" asp-route-subjectId="@sub.Id" asp-route-term="@Model.Term">@sub.Name</a></th>
+                        }
+                        <th class="text-center">Average</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    <tr>
+                        <td class="text-center">@(row.Position?.ToString() ?? "—")</td>
+                        <td class="sticky-col">
+                            <a asp-action="Student" asp-route-id="@row.Student.Id" asp-route-term="@Model.Term">@row.Student.FullName</a>
+                            <div class="small text-muted">@row.Student.AdmissionNumber</div>
+                        </td>
+                        @if (single)
+                        {
+                            row.Results.TryGetValue(Model.SubjectId!.Value, out var r);
+                            <td class="text-center">@s.Format(r?.Assignment.Value)</td>
+                            <td class="text-center">@s.Format(r?.Ca.Value)</td>
+                            <td class="text-center">@s.Format(r?.Exam.Value)</td>
+                            <td class="text-center fw-bold">@s.Format(r?.Total)</td>
+                        }
+                        else
+                        {
+                            @foreach (var sub in Model.Columns)
+                            {
+                                row.Results.TryGetValue(sub.Id, out var r);
+                                <td class="text-center" title="@(r != null ? $"Assignment {s.Format(r.Assignment.Value)} · CA {s.Format(r.Ca.Value)} · Exam {s.Format(r.Exam.Value)}" : "")">@s.Format(r?.Total)</td>
+                            }
+                            <td class="text-center fw-bold">@s.Format(row.Average)</td>
+                        }
+                    </tr>
+                }
+            </tbody>
+            @if (!single)
+            {
+                <tfoot>
+                    <tr>
+                        <th></th>
+                        <th class="sticky-col">Subject average</th>
+                        @foreach (var sub in Model.Columns)
+                        {
+                            <th class="text-center">@s.Format(Model.SubjectAverages.GetValueOrDefault(sub.Id))</th>
+                        }
+                        <th></th>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+    <p class="small text-muted">Click a student to see their assignments, CA tests and exams. @(single ? "" : "Click a subject to see its Assignment, CA and Exam breakdown.")</p>
+}

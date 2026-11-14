@@ -8,7 +8,7 @@
     <a asp-action="PendingApproval" class="btn btn-outline-secondary">Back</a>
 </div>
 
-<h2>@Model.Title</h2>
+<h2>@Model.Title @if (Model.IsCaTest) { <span class="status-badge status-assigned ms-1 align-middle">CA Test</span> }</h2>
 <p class="text-muted">
     By @Model.Teacher?.FullName &middot; @Model.Subject?.Name &middot; @Model.Class?.Name
     &middot; <span class="status-badge status-@Model.Status.ToLower()">@Model.Status</span>

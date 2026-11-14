@@ -93,7 +93,7 @@ public class ExamReminderService : BackgroundService
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
-            var subject = $"Exam Reminder: {exam.Title}";
+            var subject = $"{exam.KindLabel} Reminder: {exam.Title}";
             var body = ExamNotices.ScheduleText(exam, "starts in less than 24 hours") +
                        " Make sure you are ready and signed in on time. The exam cannot be opened before it starts.";
 
@@ -139,7 +139,7 @@ public static class ExamNotices
 
     public static string ScheduleText(Exam exam, string verb)
     {
-        var text = $"The exam \"{exam.Title}\" ({exam.Subject?.Name}) {verb}: {When(exam)}.";
+        var text = $"The {(exam.IsCaTest ? "CA test" : "exam")} \"{exam.Title}\" ({exam.Subject?.Name}) {verb}: {When(exam)}.";
         if (exam.DurationMinutes != null) text += $" It lasts {Duration(exam.DurationMinutes.Value)}.";
         return text;
     }

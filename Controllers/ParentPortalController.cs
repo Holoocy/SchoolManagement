@@ -69,8 +69,8 @@ public class ParentPortalController : Controller
         ViewBag.Submissions = submissions;
 
         var gradedSubmissions = await _context.AssignmentSubmissions
-            .Where(s => s.StudentId == studentId && s.Grade != null)
-            .Select(s => s.Grade!.Value)
+            .Where(s => s.StudentId == studentId && s.Grade != null && s.Assignment!.MaxScore > 0)
+            .Select(s => s.Grade!.Value * 100m / s.Assignment!.MaxScore)
             .ToListAsync();
         ViewBag.AverageGrade = gradedSubmissions.Any() ? Math.Round(gradedSubmissions.Average(), 1) : (decimal?)null;
 

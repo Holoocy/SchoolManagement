@@ -40,8 +40,8 @@
                     <dd><span class="status-badge status-@Model.Status.ToLower().Replace(" ", "-")">@Model.Status</span></dd>
                     <dt>Submitted</dt>
                     <dd>@(Model.SubmittedOn?.ToLocalTime().ToString("g") ?? "—")</dd>
-                    <dt>Grade</dt>
-                    <dd>@(Model.Grade != null ? $"{Model.Grade}%" : "Not graded yet")</dd>
+                    <dt>Score</dt>
+                    <dd>@(Model.Grade != null ? Model.ScoreText : $"Not graded yet (out of {Model.Assignment?.MaxScore})")</dd>
                     <dt>Teacher's feedback</dt>
                     <dd class="question-text mb-0">@(string.IsNullOrWhiteSpace(Model.Feedback) ? "—" : Model.Feedback)</dd>
                 </dl>

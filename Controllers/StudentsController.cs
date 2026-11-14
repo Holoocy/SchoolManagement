@@ -18,12 +18,14 @@ public class StudentsController : Controller
     private readonly ApplicationDbContext _context;
     private readonly IWebHostEnvironment _environment;
     private readonly StudentCsvImporter _importer;
+    private readonly ResultsService _results;
 
-    public StudentsController(ApplicationDbContext context, IWebHostEnvironment environment, StudentCsvImporter importer)
+    public StudentsController(ApplicationDbContext context, IWebHostEnvironment environment, StudentCsvImporter importer, ResultsService results)
     {
         _context = context;
         _environment = environment;
         _importer = importer;
+        _results = results;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -171,7 +173,7 @@ public class StudentsController : Controller
     public IActionResult ImportTemplate() =>
         File(StudentCsvImporter.TemplateFile(), "text/csv", "students-template.csv");
 
-    public async Task<IActionResult> Details(int? id)
+    public async Task<IActionResult> Details(int? id, string? term)
     {
         if (id == null)
         {
@@ -184,6 +186,8 @@ public class StudentsController : Controller
             return NotFound();
         }
 
+        // Assignment, CA and exam records for the chosen term.
+        ViewBag.Record = await _results.BuildStudentRecordAsync(student, term);
         return View(student);
     }
 

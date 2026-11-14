@@ -1,88 +1,114 @@
-@model SchoolManagement.Models.Teacher
-
+@model SchoolManagement.Models.TeacherProfileViewModel
 @{
     ViewData["Title"] = "Teacher Details";
+    var t = Model.Teacher;
+    var s = Model.Scheme;
+    string Pct(decimal? v) => v == null ? "—" : $"{v:0.#}%";
 }
 
 <div class="mb-3">
     <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
 </div>
 
-<h2>Teacher Details</h2>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+        <h2 class="mb-0">@t.FullName</h2>
+        <p class="text-muted mb-0">@t.EmployeeId &middot; @(t.IsActive ? "Active" : "Inactive") &middot; Hired @t.HireDate.ToString("d MMM yyyy")</p>
+    </div>
+    <form method="get" class="d-flex gap-2 align-items-center">
+        <input type="hidden" name="id" value="@t.Id" />
+        <label class="small text-muted" for="term">Term</label>
+        <select name="term" id="term" class="form-select form-select-sm" onchange="this.form.submit()">
+            @foreach (var term in Model.Terms)
+            {
+                <option value="@term" selected="@(term == Model.Term)">@term@(term == s.CurrentTerm ? " (current)" : "")</option>
+            }
+        </select>
+    </form>
+</div>
 
 @if (TempData["TeacherSuccess"] != null)
 {
     <div class="alert alert-success">@TempData["TeacherSuccess"]</div>
 }
 
-<div class="card mb-3">
-    <div class="card-body">
-        <dl class="row">
-            <dt class="col-sm-3">Full Name</dt>
-            <dd class="col-sm-9">@Model.FullName</dd>
-            <dt class="col-sm-3">Employee ID</dt>
-            <dd class="col-sm-9">@Model.EmployeeId</dd>
-            <dt class="col-sm-3">Gender</dt>
-            <dd class="col-sm-9">@Model.Gender</dd>
-            <dt class="col-sm-3">Email</dt>
-            <dd class="col-sm-9">@Model.Email</dd>
-            <dt class="col-sm-3">Phone</dt>
-            <dd class="col-sm-9">@Model.Phone</dd>
-            <dt class="col-sm-3">Address</dt>
-            <dd class="col-sm-9">@Model.Address</dd>
-            <dt class="col-sm-3">Hire Date</dt>
-            <dd class="col-sm-9">@Model.HireDate.ToShortDateString()</dd>
-            <dt class="col-sm-3">Status</dt>
-            <dd class="col-sm-9">@(Model.IsActive ? "Active" : "Inactive")</dd>
-        </dl>
-    </div>
+<div class="profile-stats">
+    <div><span>Students taught</span><strong>@Model.ActiveStudents</strong><small>@Model.Grades.Count grade(s), @Model.Subjects.Count subject(s)</small></div>
+    <div><span>Assignments (@Model.Term)</span><strong>@Model.Assignments.Count</strong><small>@Model.SubmissionsToGrade submission(s) waiting to be scored</small></div>
+    <div><span>Exams &amp; CA tests</span><strong>@Model.Exams.Count</strong><small>@Model.Exams.Count(e => e.Exam.IsCaTest) CA test(s) · @Model.ExamAnswersToMark answer(s) to mark</small></div>
+    <div><span>Scores recorded</span><strong>@Model.ScoresRecordedThisTerm</strong><small>score-sheet rows this term</small></div>
+    <div><span>Attendance (30 days)</span><strong>@Pct(Model.AttendanceRate30Days)</strong><small>@Model.AttendanceRecords30Days record(s) on @Model.AttendanceDaysTaken30Days day(s)</small></div>
+    <div><span>Weekly checklist</span><strong>@Model.ChecklistPending pending</strong><small>@Model.ChecklistDone done</small></div>
+    <div><span>Messages sent</span><strong>@Model.MessagesSent</strong><small>@(Model.LastMessageAt != null ? $"Last {Model.LastMessageAt.Value.ToLocalTime():d MMM yyyy}" : "None yet")</small></div>
 </div>
 
 <div class="panel-grid">
     <div class="panel">
-        <div class="panel-header">
-            <h2 class="panel-title">Assigned Subjects</h2>
-            <a asp-action="AssignSubjects" asp-route-id="@Model.Id" class="panel-link">Manage</a>
+        <div class="panel-header"><h2 class="panel-title">Profile</h2><a asp-action="Edit" asp-route-id="@t.Id" class="panel-link">Edit</a></div>
+        <div class="panel-body panel-body-padded">
+            <dl class="row mb-0 small mx-0">
+                <dt class="col-5">Gender</dt><dd class="col-7">@t.Gender</dd>
+                <dt class="col-5">Email</dt><dd class="col-7">@t.Email</dd>
+                <dt class="col-5">Phone</dt><dd class="col-7">@(t.Phone ?? "—")</dd>
+                <dt class="col-5">Address</dt><dd class="col-7">@t.Address</dd>
+                <dt class="col-5">Login</dt>
+                <dd class="col-7">
+                    @if (Model.Account == null)
+                    {
+                        <span class="text-muted">No login account linked</span>
+                    }
+                    else
+                    {
+                        @Model.Account.Username <span class="status-badge @(Model.Account.IsActive ? "status-completed" : "status-rejected")">@(Model.Account.IsActive ? "Active" : "Disabled")</span>
+                        <div class="text-muted">Created @Model.Account.CreatedAt.ToString("d MMM yyyy")</div>
+                    }
+                </dd>
+            </dl>
         </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header"><h2 class="panel-title">Grades</h2><a asp-action="AssignClasses" asp-route-id="@t.Id" class="panel-link">Manage</a></div>
         <div class="panel-body">
-            @{
-                var subjects = (List<string>)ViewBag.Subjects;
+            @if (!Model.Grades.Any())
+            {
+                <p class="empty-state">No grades assigned yet.</p>
             }
-            @if (!subjects.Any())
+            else
+            {
+                <ul class="entity-list">
+                    @foreach (var g in Model.Grades)
+                    {
+                        <li class="entity-list-item">
+                            <a asp-controller="Students" asp-action="Index" asp-route-classId="@g.Id">
+                                <div class="entity-title">@g.Name</div>
+                                <span class="status-badge status-assigned">@g.Count student(s)</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header"><h2 class="panel-title">Subjects</h2><a asp-action="AssignSubjects" asp-route-id="@t.Id" class="panel-link">Manage</a></div>
+        <div class="panel-body">
+            @if (!Model.Subjects.Any())
             {
                 <p class="empty-state">No subjects assigned yet.</p>
             }
             else
             {
                 <ul class="entity-list">
-                    @foreach (var name in subjects)
+                    @foreach (var sub in Model.Subjects)
                     {
-                        <li class="entity-list-item entity-list-item-static"><div class="entity-title">@name</div></li>
-                    }
-                </ul>
-            }
-        </div>
-    </div>
-
-    <div class="panel">
-        <div class="panel-header">
-            <h2 class="panel-title">Assigned Classes</h2>
-            <a asp-action="AssignClasses" asp-route-id="@Model.Id" class="panel-link">Manage</a>
-        </div>
-        <div class="panel-body">
-            @{
-                var classes = (List<string>)ViewBag.Classes;
-            }
-            @if (!classes.Any())
-            {
-                <p class="empty-state">No classes assigned yet.</p>
-            }
-            else
-            {
-                <ul class="entity-list">
-                    @foreach (var name in classes)
-                    {
-                        <li class="entity-list-item entity-list-item-static"><div class="entity-title">@name</div></li>
+                        <li class="entity-list-item entity-list-item-static">
+                            <div>
+                                <div class="entity-title">@sub.Name <span class="text-muted small">@sub.Code</span></div>
+                                <div class="entity-meta">@(sub.Grades.Any() ? "Grades: " + string.Join(", ", sub.Grades) : "Not linked to a grade yet")</div>
+                            </div>
+                        </li>
                     }
                 </ul>
             }
@@ -90,7 +116,106 @@
     </div>
 </div>
 
+<div class="card mt-3">
+    <div class="card-body">
+        <h3 class="h6">Results by grade and subject <span class="text-muted fw-normal">(@Model.Term, out of @s.Total)</span></h3>
+        @if (!Model.Results.Any())
+        {
+            <p class="empty-state mb-0">Results appear once the teacher has a grade and a subject.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Grade</th><th>Subject</th><th class="text-center">Students with scores</th><th class="text-center">Average</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var r in Model.Results)
+                        {
+                            <tr>
+                                <td>@r.ClassName</td>
+                                <td>@r.SubjectName</td>
+                                <td class="text-center">@r.WithScores / @r.Students</td>
+                                <td class="text-center fw-bold">@s.Format(r.Average)</td>
+                                <td class="text-end text-nowrap">
+                                    <a asp-controller="Reports" asp-action="Results" asp-route-classId="@r.ClassId" asp-route-subjectId="@r.SubjectId" asp-route-term="@Model.Term">Results</a> &middot;
+                                    <a asp-controller="Scores" asp-action="Index" asp-route-classId="@r.ClassId" asp-route-subjectId="@r.SubjectId" asp-route-term="@Model.Term">Score sheet</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <h3 class="h6">Assignments <span class="text-muted fw-normal">(@Model.Term)</span></h3>
+        @if (!Model.Assignments.Any())
+        {
+            <p class="empty-state mb-0">No assignments in this teacher's subjects for @Model.Term.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Title</th><th>Subject</th><th>Grade</th><th>Due</th><th>Status</th><th class="text-center">Scored</th><th class="text-center">Average</th></tr></thead>
+                    <tbody>
+                        @foreach (var a in Model.Assignments)
+                        {
+                            <tr>
+                                <td><a asp-controller="Assignments" asp-action="Grade" asp-route-id="@a.Assignment.Id">@a.Assignment.Title</a> <span class="small text-muted">/ @a.Assignment.MaxScore</span></td>
+                                <td>@a.Assignment.Subject?.Name</td>
+                                <td>@(a.Assignment.Class?.Name ?? "—")</td>
+                                <td>@a.Assignment.DueDate.ToShortDateString()</td>
+                                <td><span class="status-badge status-@a.Assignment.ProgressStatus.ToLower().Replace(" ", "-")">@a.Assignment.ProgressStatus</span></td>
+                                <td class="text-center">@a.Graded / @a.Assigned</td>
+                                <td class="text-center">@Pct(a.AveragePercent)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <h3 class="h6">Exams &amp; CA tests <span class="text-muted fw-normal">(@Model.Term)</span></h3>
+        @if (!Model.Exams.Any())
+        {
+            <p class="empty-state mb-0">No exams or CA tests created for @Model.Term.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Title</th><th>Type</th><th>Subject</th><th>Grade</th><th>Status</th><th>Starts</th><th class="text-center">Questions</th><th class="text-center">Taken</th><th class="text-center">Average</th></tr></thead>
+                    <tbody>
+                        @foreach (var e in Model.Exams)
+                        {
+                            <tr>
+                                <td><a asp-controller="Exams" asp-action="Results" asp-route-id="@e.Exam.Id">@e.Exam.Title</a></td>
+                                <td>@e.Exam.KindLabel</td>
+                                <td>@e.Exam.Subject?.Name</td>
+                                <td>@e.Exam.Class?.Name</td>
+                                <td><span class="status-badge status-@e.Exam.Status.ToLower()">@e.Exam.Status</span></td>
+                                <td>@(e.Exam.StartDate?.ToString("d MMM, h:mm tt") ?? "—")</td>
+                                <td class="text-center">@e.Questions</td>
+                                <td class="text-center">@e.Submissions@(e.AwaitingMarking > 0 ? $" ({e.AwaitingMarking} to mark)" : "")</td>
+                                <td class="text-center">@Pct(e.AveragePercent)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
 <div class="mt-4">
-    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+    <a asp-action="Edit" asp-route-id="@t.Id" class="btn btn-primary">Edit</a>
     <a asp-action="Index" class="btn btn-secondary">Back to List</a>
 </div>

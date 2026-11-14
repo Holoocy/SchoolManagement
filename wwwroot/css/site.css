@@ -4297,3 +4297,25 @@ a.stat-card-link:focus-visible { outline: 2px solid var(--color-accent); outline
 /* Marking: score box for a written answer */
 .mark-score { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
 .mark-score .form-control { width: 6.5rem; }
+
+/* Score sheet, student record, teacher profile */
+.score-sheet .score-input { width: 5.5rem; text-align: center; }
+.score-sheet td, .score-sheet th { white-space: nowrap; }
+.record-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .75rem; }
+.record-stats > div { border: 1px solid var(--bs-border-color, #e5e7eb); border-radius: .5rem; padding: .6rem .8rem; }
+.record-stats span { display: block; font-size: .78rem; color: #6b7280; }
+.record-stats strong { font-size: 1.1rem; }
+.record-flag { color: var(--bs-primary, #7a1035); font-weight: 700; margin-left: .15rem; }
+.broadsheet td, .broadsheet th { white-space: nowrap; }
+.broadsheet .sticky-col { position: sticky; left: 0; background: var(--bs-body-bg, #fff); z-index: 1; }
+.broadsheet thead .sticky-col { background: inherit; }
+.upload-errors { max-height: 260px; overflow-y: auto; }
+.profile-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .75rem; margin-bottom: 1rem; }
+.profile-stats > a, .profile-stats > div { display: block; border: 1px solid var(--bs-border-color, #e5e7eb); border-radius: .6rem; padding: .7rem .9rem; color: inherit; text-decoration: none; background: var(--bs-body-bg, #fff); }
+.profile-stats > a:hover { border-color: var(--bs-primary, #7a1035); }
+.profile-stats span { display: block; font-size: .78rem; color: #6b7280; }
+.profile-stats strong { font-size: 1.25rem; }
+.profile-stats small { display: block; color: #6b7280; }
+.broadsheet .broadsheet-subject { color: inherit; text-decoration: underline dotted; }
+.broadsheet tfoot .sticky-col { background: transparent; }
+.panel-body.panel-body-padded { padding: 1rem 1.25rem; }

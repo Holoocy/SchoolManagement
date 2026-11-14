@@ -1,17 +1,22 @@
 @model SchoolManagement.Models.ReportsViewModel
 
 @{
-    ViewData["Title"] = "Reports";
+    ViewData["Title"] = Model.IsTeacher ? "My Reports" : "Reports";
+    var sc = Model.Scheme;
     var hasAttendance = Model.AttendanceLastSevenDays.Any(day => day.Total > 0);
     var maximumAttendance = Math.Max(1, Model.AttendanceLastSevenDays.Max(day => day.Total));
 }
 
 <div class="reports-page">
+    @if (!Model.HasTeacherProfile)
+    {
+        <div class="alert alert-warning">Your account isn't linked to a teacher profile yet. Ask an administrator to link it.</div>
+    }
     <header class="reports-header">
         <div>
-            <p class="reports-eyebrow">Executive overview</p>
-            <h1>School reports</h1>
-            <p>A clear view of the people, learning activity, and attendance shaping your school this week.</p>
+            <p class="reports-eyebrow">@(Model.IsTeacher ? "Your classes" : "Executive overview")</p>
+            <h1>@(Model.IsTeacher ? "My reports" : "School reports")</h1>
+            <p>@(Model.IsTeacher ? "Results, attendance and assignments for the grades and subjects assigned to you." : "A clear view of the people, learning activity, attendance and results shaping your school.")</p>
         </div>
         <span class="reports-period"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15" rx="2" /><path d="M7 3v4M17 3v4M3.5 9.5h17" stroke-linecap="round" /></svg> Last 7 days</span>
     </header>
@@ -39,20 +44,64 @@
     <section class="reports-metrics" aria-label="School totals">
         <article class="reports-metric-card">
             <span class="reports-metric-icon students" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg></span>
-            <div><small>Students</small><strong>@Model.TotalStudents</strong><span>Enrolled learners</span></div>
+            <div><small>Students</small><strong>@Model.TotalStudents</strong><span>@(Model.IsTeacher ? "In my grades" : "Enrolled learners")</span></div>
         </article>
         <article class="reports-metric-card">
             <span class="reports-metric-icon teachers" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="7" r="3.5" /><path d="M2.5 20v-1.5A4.5 4.5 0 0 1 7 14h4a4.5 4.5 0 0 1 4.5 4.5V20M17 4a3 3 0 0 1 0 5.8M21.5 20v-1.2a4.4 4.4 0 0 0-2.7-4.05" stroke-linecap="round" /></svg></span>
-            <div><small>Teachers</small><strong>@Model.TotalTeachers</strong><span>Teaching staff</span></div>
+            <div><small>@(Model.IsTeacher ? "Grades" : "Teachers")</small><strong>@Model.TotalTeachers</strong><span>@(Model.IsTeacher ? "Assigned to me" : "Teaching staff")</span></div>
         </article>
         <article class="reports-metric-card">
             <span class="reports-metric-icon subjects" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" /></svg></span>
-            <div><small>Subjects</small><strong>@Model.TotalSubjects</strong><span>Active curriculum</span></div>
+            <div><small>Subjects</small><strong>@Model.TotalSubjects</strong><span>@(Model.IsTeacher ? "I teach" : "Active curriculum")</span></div>
         </article>
         <article class="reports-metric-card">
             <span class="reports-metric-icon assignments" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M9 13h6M9 17h4" stroke-linecap="round" /></svg></span>
             <div><small>Assignments</small><strong>@Model.TotalAssignments</strong><span>Learning activities</span></div>
         </article>
+    </section>
+
+    <section class="reports-card mb-4" aria-labelledby="results-heading">
+        <div class="reports-card-header">
+            <div><p class="reports-card-kicker">Academic results</p><h2 id="results-heading">@Model.Term</h2></div>
+            <form method="get" class="d-flex gap-2 align-items-center">
+                <select name="term" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="Term">
+                    @foreach (var t in Model.Terms)
+                    {
+                        <option value="@t" selected="@(t == Model.Term)">@t@(t == sc.CurrentTerm ? " (current)" : "")</option>
+                    }
+                </select>
+            </form>
+        </div>
+        <p class="small text-muted">Assignment @sc.AssignmentWeight + CA @sc.CaWeight + Exam @sc.ExamWeight = @sc.Total. Averages are of each student's subject totals@(Model.IsTeacher ? " in your subjects" : "").</p>
+        @if (!Model.Grades.Any())
+        {
+            <p class="reports-inline-empty">@(Model.IsTeacher ? "No grade has been assigned to you yet." : "No grades yet.")</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-2">
+                    <thead><tr><th>Grade</th><th class="text-center">Students</th><th class="text-center">With scores</th><th class="text-center">Average</th><th>Top student</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var g in Model.Grades)
+                        {
+                            <tr>
+                                <td>@g.ClassName</td>
+                                <td class="text-center">@g.Students</td>
+                                <td class="text-center">@g.StudentsWithScores</td>
+                                <td class="text-center fw-bold">@sc.Format(g.Average)</td>
+                                <td>@(g.TopStudent ?? "—")</td>
+                                <td class="text-end"><a asp-action="Results" asp-route-classId="@g.ClassId" asp-route-term="@Model.Term">Broadsheet</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        <div class="reports-hero-actions">
+            <a asp-controller="Scores" asp-action="Index" asp-route-term="@Model.Term">Score sheet <span aria-hidden="true">→</span></a>
+            <a asp-controller="Scores" asp-action="Upload" asp-route-term="@Model.Term">Upload scores <span aria-hidden="true">→</span></a>
+        </div>
     </section>
 
     <div class="reports-content-grid">
@@ -89,7 +138,7 @@
 
         <section class="reports-card reports-work-card" aria-labelledby="work-heading">
             <div class="reports-card-header">
-                <div><p class="reports-card-kicker">Work in motion</p><h2 id="work-heading">Assignments and checklists</h2></div>
+                <div><p class="reports-card-kicker">Work in motion</p><h2 id="work-heading">@(Model.IsTeacher ? "My assignments and checklist" : "Assignments and checklists")</h2></div>
                 <span class="reports-work-total">@Model.TotalAssignments + @Model.TotalWeeklyChecklists</span>
             </div>
 

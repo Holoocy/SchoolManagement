@@ -38,6 +38,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ExamQuestion> ExamQuestions { get; set; }
     public DbSet<ExamSubmission> ExamSubmissions { get; set; }
     public DbSet<ExamAnswer> ExamAnswers { get; set; }
+    public DbSet<SubjectScore> SubjectScores { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -238,6 +239,22 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(a => a.ExamQuestionId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        modelBuilder.Entity<SubjectScore>()
+            .HasOne(s => s.Student)
+            .WithMany()
+            .HasForeignKey(s => s.StudentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<SubjectScore>()
+            .HasOne(s => s.Subject)
+            .WithMany()
+            .HasForeignKey(s => s.SubjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<SubjectScore>()
+            .HasIndex(s => new { s.StudentId, s.SubjectId, s.Term })
+            .IsUnique();
+
         modelBuilder.Entity<Assignment>()
             .HasOne(a => a.Class)
             .WithMany()
@@ -266,6 +283,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<ExamQuestion>().HasQueryFilter(e => e.SchoolId == _tenantProvider.SchoolId);
         modelBuilder.Entity<ExamSubmission>().HasQueryFilter(e => e.SchoolId == _tenantProvider.SchoolId);
         modelBuilder.Entity<ExamAnswer>().HasQueryFilter(e => e.SchoolId == _tenantProvider.SchoolId);
+        modelBuilder.Entity<SubjectScore>().HasQueryFilter(e => e.SchoolId == _tenantProvider.SchoolId);
 
         // The portal stores calendar dates and local date-times rather than timezone-aware
         // instants. PostgreSQL maps these consistently as timestamp without time zone.

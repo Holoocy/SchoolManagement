@@ -82,10 +82,13 @@ public class ExamsController : Controller
         exam.TeacherId = teacher.Id;
         exam.Status = ExamStatus.Draft;
         exam.ReminderSentAt = null;
+        if (!ExamKinds.All.Contains(exam.Kind)) exam.Kind = ExamKinds.Exam;
+        // Counts towards the school's current term.
+        exam.Term = (await _context.Schools.AsNoTracking().FirstAsync(s => s.Id == teacher.SchoolId)).ToGradingScheme().CurrentTerm;
 
         _context.Add(exam);
         await _context.SaveChangesAsync();
-        TempData["ExamSuccess"] = $"\"{exam.Title}\" created. Add questions, then submit it for approval.";
+        TempData["ExamSuccess"] = $"{exam.KindLabel} \"{exam.Title}\" created. Add questions, then submit it for approval.";
         return RedirectToAction(nameof(Questions), new { examId = exam.Id });
     }
 
@@ -120,7 +123,7 @@ public class ExamsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, string title, int subjectId, int classId, DateTime? startDate, int? durationMinutes)
+    public async Task<IActionResult> Edit(int id, string title, int subjectId, int classId, DateTime? startDate, int? durationMinutes, string? kind)
     {
         var exam = await GetOwnExamAsync(id);
         if (exam == null) return NotFound();
@@ -144,6 +147,7 @@ public class ExamsController : Controller
         }
 
         exam.Title = title.Trim();
+        if (kind != null && ExamKinds.All.Contains(kind)) exam.Kind = kind;
         exam.SubjectId = subjectId;
         exam.ClassId = classId;
         exam.StartDate = startDate;

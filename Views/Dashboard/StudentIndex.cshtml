@@ -79,7 +79,7 @@
                         <li class="entity-list-item entity-list-item-static">
                             <div>
                                 <div class="entity-title">@submission.Assignment?.Title</div>
-                                <div class="entity-meta">@submission.Assignment?.Subject?.Name &middot; Due @submission.Assignment?.DueDate.ToShortDateString()@(submission.Grade != null ? $" · Grade: {submission.Grade}%" : "")</div>
+                                <div class="entity-meta">@submission.Assignment?.Subject?.Name &middot; Due @submission.Assignment?.DueDate.ToShortDateString()@(submission.Grade != null ? $" · Score: {submission.ScoreText}" : "")</div>
                             </div>
                             <span class="status-badge status-@submission.Status.ToLower().Replace(" ", "-")">@submission.Status</span>
                         </li>

@@ -42,7 +42,7 @@ else
             @foreach (var exam in Model)
             {
                 <tr>
-                    <td>@exam.Title</td>
+                    <td>@exam.Title @if (exam.IsCaTest) { <span class="status-badge status-assigned ms-1">CA Test</span> }</td>
                     <td>@exam.Teacher?.FullName</td>
                     <td>@exam.Subject?.Name</td>
                     <td>@exam.Class?.Name</td>

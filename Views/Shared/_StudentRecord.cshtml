@@ -1,0 +1,130 @@
+@model SchoolManagement.Models.StudentRecordViewModel
+@using SchoolManagement.Models
+@{
+    var s = Model.Scheme;
+    string Mark(SchoolManagement.Services.ComponentScore c) => s.Format(c.Value);
+    string Pct(decimal? v) => v == null ? "—" : $"{v:0.#}%";
+}
+
+<section class="student-record" id="records">
+    <div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-2">
+        <div>
+            <h3 class="h5 mb-0">Academic record</h3>
+            <p class="small text-muted mb-0">Assignment @s.AssignmentWeight + CA @s.CaWeight + Exam @s.ExamWeight = @s.Total</p>
+        </div>
+        <form method="get" asp-controller="@Model.ReturnController" asp-action="@Model.ReturnAction" asp-route-id="@Model.Student.Id" asp-fragment="records" class="d-flex gap-2 align-items-center">
+            <label class="small text-muted" for="recordTerm">Term</label>
+            <select name="term" id="recordTerm" class="form-select form-select-sm" onchange="this.form.submit()">
+                @foreach (var t in Model.Terms)
+                {
+                    <option value="@t" selected="@(t == Model.Term)">@t@(t == s.CurrentTerm ? " (current)" : "")</option>
+                }
+            </select>
+        </form>
+    </div>
+
+    <div class="record-stats">
+        <div><span>Average</span><strong>@s.Format(Model.Average)</strong></div>
+        <div><span>Position in grade</span><strong>@(Model.Position != null ? $"{Model.Position} of {Model.ClassSize}" : "—")</strong></div>
+        <div><span>Subjects with scores</span><strong>@Model.Subjects.Count(x => x.Result.HasAny) / @Model.Subjects.Count</strong></div>
+        <div><span>Attendance</span><strong>@(Model.AttendanceDays > 0 ? $"{Model.PresentDays} of {Model.AttendanceDays} days" : "—")</strong></div>
+    </div>
+
+    <h4 class="h6 mt-3">Subject results</h4>
+    @if (!Model.Subjects.Any())
+    {
+        <p class="empty-state">No subjects or scores for @Model.Term yet.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Subject</th>
+                        <th class="text-center">Assignment (@s.AssignmentWeight)</th>
+                        <th class="text-center">CA (@s.CaWeight)</th>
+                        <th class="text-center">Exam (@s.ExamWeight)</th>
+                        <th class="text-center">Total (@s.Total)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in Model.Subjects)
+                    {
+                        <tr>
+                            <td>@line.SubjectName</td>
+                            @foreach (var c in new[] { line.Result.Assignment, line.Result.Ca, line.Result.Exam })
+                            {
+                                <td class="text-center">@Mark(c)@if (c.IsRecorded) { <span class="record-flag" title="Recorded on the score sheet or uploaded">•</span> }</td>
+                            }
+                            <td class="text-center fw-bold">@s.Format(line.Result.Total)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <p class="small text-muted">• recorded on the score sheet or uploaded; other scores are worked out from work done in the app.</p>
+    }
+
+    <div class="panel-grid mt-2">
+        <div class="panel">
+            <div class="panel-header"><h2 class="panel-title">Assignments</h2></div>
+            <div class="panel-body">
+                @if (!Model.Assignments.Any())
+                {
+                    <p class="empty-state">No assignments this term.</p>
+                }
+                else
+                {
+                    <ul class="entity-list">
+                        @foreach (var a in Model.Assignments)
+                        {
+                            <li class="entity-list-item entity-list-item-static">
+                                <div>
+                                    <div class="entity-title">@a.Assignment?.Title</div>
+                                    <div class="entity-meta">@a.Assignment?.Subject?.Name &middot; Due @a.Assignment?.DueDate.ToShortDateString()</div>
+                                </div>
+                                @if (a.Grade != null)
+                                {
+                                    <span class="status-badge status-completed">@a.ScoreText</span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge status-@a.Status.ToLower()">@a.Status</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+
+        @foreach (var (title, list, empty) in new[] { ("CA tests", Model.CaTests, "No CA tests taken this term."), ("Exams", Model.Exams, "No exams taken this term.") })
+        {
+            <div class="panel">
+                <div class="panel-header"><h2 class="panel-title">@title</h2></div>
+                <div class="panel-body">
+                    @if (!list.Any())
+                    {
+                        <p class="empty-state">@empty</p>
+                    }
+                    else
+                    {
+                        <ul class="entity-list">
+                            @foreach (var x in list)
+                            {
+                                <li class="entity-list-item entity-list-item-static">
+                                    <div>
+                                        <div class="entity-title">@x.Exam?.Title</div>
+                                        <div class="entity-meta">@x.Exam?.Subject?.Name &middot; @x.SubmittedAt.ToLocalTime().ToString("d MMM yyyy")</div>
+                                    </div>
+                                    <span class="status-badge @(x.AwaitingMarking ? "status-pending" : "status-completed")">@x.Score / @x.OutOf (@Pct(x.Percentage))@(x.AwaitingMarking ? " · marking" : "")</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</section>

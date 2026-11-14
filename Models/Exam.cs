@@ -11,6 +11,18 @@ public static class ExamStatus
     public const string Published = "Published";
 }
 
+// Exams and CA (continuous assessment) tests are built and taken the same way;
+// the kind decides which part of the student's result the score counts towards.
+public static class ExamKinds
+{
+    public const string Exam = "Exam";
+    public const string Ca = "CA";
+
+    public static readonly string[] All = { Exam, Ca };
+
+    public static string Label(string? kind) => kind == Ca ? "CA Test" : "Exam";
+}
+
 public class Exam : ITenantEntity
 {
     public int Id { get; set; }
@@ -31,6 +43,15 @@ public class Exam : ITenantEntity
 
     [Required]
     public string Status { get; set; } = ExamStatus.Draft;
+
+    [Display(Name = "Type")]
+    public string Kind { get; set; } = ExamKinds.Exam;
+
+    // Term the score counts towards (the school's current term when it was created).
+    public string? Term { get; set; }
+
+    public string KindLabel => ExamKinds.Label(Kind);
+    public bool IsCaTest => Kind == ExamKinds.Ca;
 
     public string? RejectionReason { get; set; }
 

@@ -90,8 +90,8 @@ public class DashboardController : Controller
             : 0m;
 
         var grades = await _context.AssignmentSubmissions
-            .Where(s => s.Grade != null)
-            .Select(s => s.Grade!.Value)
+            .Where(s => s.Grade != null && s.Assignment!.MaxScore > 0)
+            .Select(s => s.Grade!.Value * 100m / s.Assignment!.MaxScore)
             .ToListAsync();
         model.AverageGrade = grades.Any() ? Math.Round(grades.Average(), 1) : (decimal?)null;
         model.SubmissionsToGrade = await _context.AssignmentSubmissions.CountAsync(s => s.Status == "Submitted");
@@ -187,8 +187,8 @@ public class DashboardController : Controller
             .CountAsync(s => s.Status == "Submitted" && s.Assignment != null && s.Assignment.SubjectId != null && subjectIds.Contains(s.Assignment.SubjectId.Value));
 
         var gradesGiven = await _context.AssignmentSubmissions
-            .Where(s => s.Grade != null && s.Assignment != null && s.Assignment.SubjectId != null && subjectIds.Contains(s.Assignment.SubjectId.Value))
-            .Select(s => s.Grade!.Value)
+            .Where(s => s.Grade != null && s.Assignment != null && s.Assignment.MaxScore > 0 && s.Assignment.SubjectId != null && subjectIds.Contains(s.Assignment.SubjectId.Value))
+            .Select(s => s.Grade!.Value * 100m / s.Assignment!.MaxScore)
             .ToListAsync();
         model.AverageGradeGiven = gradesGiven.Any() ? Math.Round(gradesGiven.Average(), 1) : (decimal?)null;
 
@@ -236,7 +236,7 @@ public class DashboardController : Controller
         model.PendingAssignments = submissions.Count(s => s.Status != "Graded");
         model.RecentSubmissions = submissions.Take(5).ToList();
 
-        var gradedSubmissions = submissions.Where(s => s.Grade != null).Select(s => s.Grade!.Value).ToList();
+        var gradedSubmissions = submissions.Where(s => s.Percent != null).Select(s => s.Percent!.Value).ToList();
         model.AverageGrade = gradedSubmissions.Any() ? Math.Round(gradedSubmissions.Average(), 1) : (decimal?)null;
 
         var attendance = await _context.AttendanceRecords
@@ -270,11 +270,12 @@ public class DashboardController : Controller
         foreach (var child in children)
         {
             var submissions = await _context.AssignmentSubmissions
+                .Include(s => s.Assignment)
                 .Where(s => s.StudentId == child.Id)
                 .ToListAsync();
 
             var pendingAssignments = submissions.Count(s => s.Status != "Graded");
-            var gradedSubmissions = submissions.Where(s => s.Grade != null).Select(s => s.Grade!.Value).ToList();
+            var gradedSubmissions = submissions.Where(s => s.Percent != null).Select(s => s.Percent!.Value).ToList();
 
             var attendance = await _context.AttendanceRecords
                 .Where(a => a.StudentId == child.Id)

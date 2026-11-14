@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SchoolManagement.Data;
 using SchoolManagement.Models;
+using SchoolManagement.Services;
 
 namespace SchoolManagement.Controllers;
 
@@ -10,10 +11,12 @@ namespace SchoolManagement.Controllers;
 public class TeachersController : Controller
 {
     private readonly ApplicationDbContext _context;
+    private readonly ResultsService _results;
 
-    public TeachersController(ApplicationDbContext context)
+    public TeachersController(ApplicationDbContext context, ResultsService results)
     {
         _context = context;
+        _results = results;
     }
 
     public async Task<IActionResult> Index()
@@ -49,7 +52,9 @@ public class TeachersController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    public async Task<IActionResult> Details(int? id)
+    // Everything about a teacher and their work: grades, subjects, students, assignments,
+    // exams and CA tests, results, attendance, checklist and messages.
+    public async Task<IActionResult> Details(int? id, string? term)
     {
         if (id == null)
         {
@@ -62,19 +67,111 @@ public class TeachersController : Controller
             return NotFound();
         }
 
-        ViewBag.Subjects = await _context.SubjectTeachers
-            .Where(st => st.TeacherId == id)
-            .Include(st => st.Subject)
-            .Select(st => st.Subject!.Name)
-            .ToListAsync();
+        var scheme = await _results.GetSchemeAsync();
+        var terms = await _results.GetTermsAsync(scheme);
+        var model = new TeacherProfileViewModel
+        {
+            Teacher = teacher,
+            Scheme = scheme,
+            Terms = terms,
+            Term = ResultsService.ResolveTerm(term, terms, scheme),
+            Account = teacher.UserId == null ? null : await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == teacher.UserId)
+        };
 
-        ViewBag.Classes = await _context.TeacherClasses
-            .Where(tc => tc.TeacherId == id)
-            .Include(tc => tc.Class)
-            .Select(tc => tc.Class!.Name)
-            .ToListAsync();
+        var classIds = await _context.TeacherClasses.Where(tc => tc.TeacherId == id).Select(tc => tc.ClassId).ToListAsync();
+        var subjectIds = await _context.SubjectTeachers.Where(st => st.TeacherId == id).Select(st => st.SubjectId).ToListAsync();
 
-        return View(teacher);
+        model.Grades = await _context.Classes.Where(c => classIds.Contains(c.Id)).OrderBy(c => c.Name)
+            .Select(c => new TeacherDashboardItem { Id = c.Id, Name = c.Name, Count = c.Students.Count(s => s.IsActive) })
+            .ToListAsync();
+        model.ActiveStudents = model.Grades.Sum(g => g.Count);
+        model.Subjects = (await _context.Subjects.Where(s => subjectIds.Contains(s.Id)).OrderBy(s => s.Name)
+                .Select(s => new { s.Id, s.Name, s.Code, Grades = s.SubjectClasses.Select(sc => sc.Class!.Name).ToList() })
+                .ToListAsync())
+            .Select(s => new TeacherSubjectLine { Id = s.Id, Name = s.Name, Code = s.Code, Grades = s.Grades.OrderBy(g => g).ToList() })
+            .ToList();
+
+        // Assignments in the teacher's subjects for the term.
+        var assignments = await _context.Assignments
+            .Include(a => a.Subject).Include(a => a.Class).Include(a => a.Submissions)
+            .Where(a => a.SubjectId != null && subjectIds.Contains(a.SubjectId.Value) && a.Term == model.Term)
+            .OrderByDescending(a => a.DueDate)
+            .ToListAsync();
+        model.Assignments = assignments.Select(a =>
+        {
+            var graded = a.Submissions.Where(s => s.Grade != null && a.MaxScore > 0).ToList();
+            return new TeacherAssignmentLine
+            {
+                Assignment = a,
+                Assigned = a.Submissions.Count,
+                Graded = graded.Count,
+                AveragePercent = graded.Any() ? Math.Round(graded.Average(s => s.Grade!.Value * 100m / a.MaxScore), 1) : null
+            };
+        }).ToList();
+        model.SubmissionsToGrade = assignments.Sum(a => a.Submissions.Count(s => s.Status == "Submitted"));
+
+        // Exams and CA tests the teacher created for the term.
+        var exams = await _context.Exams
+            .Include(e => e.Subject).Include(e => e.Class).Include(e => e.Questions)
+            .Include(e => e.Submissions).ThenInclude(s => s.Answers)
+            .Where(e => e.TeacherId == id && e.Term == model.Term)
+            .OrderByDescending(e => e.CreatedAt)
+            .ToListAsync();
+        model.Exams = exams.Select(e =>
+        {
+            var marked = e.Submissions.Where(s => !s.AwaitingMarking).ToList();
+            return new TeacherExamLine
+            {
+                Exam = e,
+                Questions = e.Questions.Count,
+                Submissions = e.Submissions.Count,
+                AwaitingMarking = e.Submissions.Count(s => s.AwaitingMarking),
+                AveragePercent = marked.Any() ? Math.Round(marked.Average(s => s.Percentage), 1) : null
+            };
+        }).ToList();
+        model.ExamAnswersToMark = exams.Sum(e => e.Submissions.Sum(s => s.Answers.Count(a => a.IsCorrect == null)));
+
+        // Results for each grade and subject the teacher has.
+        var students = await _context.Students.Where(s => s.IsActive && s.ClassId != null && classIds.Contains(s.ClassId.Value))
+            .Select(s => new { s.Id, ClassId = s.ClassId!.Value }).ToListAsync();
+        var results = await _results.ComputeAsync(students.Select(s => s.Id).ToList(), subjectIds, model.Term, scheme);
+        foreach (var grade in model.Grades)
+        {
+            var inGrade = students.Where(s => s.ClassId == grade.Id).Select(s => s.Id).ToList();
+            foreach (var subject in model.Subjects)
+            {
+                var totals = inGrade.Select(sid => results.TryGetValue((sid, subject.Id), out var r) ? r.Total : null)
+                    .Where(t => t != null).Select(t => t!.Value).ToList();
+                model.Results.Add(new TeacherResultLine
+                {
+                    ClassId = grade.Id, ClassName = grade.Name, SubjectId = subject.Id, SubjectName = subject.Name,
+                    Students = inGrade.Count, WithScores = totals.Count,
+                    Average = totals.Any() ? scheme.Round(totals.Average()) : null
+                });
+            }
+        }
+        if (teacher.UserId != null)
+        {
+            model.ScoresRecordedThisTerm = await _context.SubjectScores.CountAsync(s => s.Term == model.Term && s.UpdatedByUserId == teacher.UserId);
+            model.MessagesSent = await _context.Messages.CountAsync(m => m.SenderUserId == teacher.UserId);
+            model.LastMessageAt = await _context.Messages.Where(m => m.SenderUserId == teacher.UserId).MaxAsync(m => (DateTime?)m.SentAt);
+        }
+
+        // Attendance in the teacher's grades over the last 30 days.
+        var since = DateTime.UtcNow.Date.AddDays(-29);
+        var studentIds = students.Select(s => s.Id).ToList();
+        var attendance = await _context.AttendanceRecords
+            .Where(a => a.AttendanceDate >= since && studentIds.Contains(a.StudentId))
+            .Select(a => new { a.AttendanceDate, a.Status }).ToListAsync();
+        model.AttendanceRecords30Days = attendance.Count;
+        model.AttendanceDaysTaken30Days = attendance.Select(a => a.AttendanceDate.Date).Distinct().Count();
+        model.AttendanceRate30Days = attendance.Any() ? Math.Round(attendance.Count(a => a.Status == "Present") * 100m / attendance.Count, 1) : null;
+
+        var fullName = teacher.FirstName + " " + teacher.LastName;
+        model.ChecklistPending = await _context.WeeklyChecklistItems.CountAsync(w => w.AssignedTo == fullName && w.Status != "Done");
+        model.ChecklistDone = await _context.WeeklyChecklistItems.CountAsync(w => w.AssignedTo == fullName && w.Status == "Done");
+
+        return View(model);
     }
 
     public async Task<IActionResult> Edit(int? id)

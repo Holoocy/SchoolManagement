@@ -43,9 +43,18 @@
     </div>
 </div>
 
-<div class="mt-4">
+<div class="mt-3">
     <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
     <a asp-action="Transfer" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Transfer</a>
     <a asp-action="IdCard" asp-route-id="@Model.Id" class="btn btn-outline-secondary">ID Card</a>
     <a asp-action="Index" class="btn btn-secondary">Back to List</a>
 </div>
+
+@if (ViewBag.Record is SchoolManagement.Models.StudentRecordViewModel record)
+{
+    <div class="card mt-4">
+        <div class="card-body">
+            <partial name="_StudentRecord" model="record" />
+        </div>
+    </div>
+}

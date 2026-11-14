@@ -212,7 +212,7 @@ public class StudentCsvImporter
         new string(value.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
 
     // RFC 4180 CSV: commas or semicolons, quoted fields, doubled quotes, newlines in quotes.
-    private static List<List<string>> ParseCsv(string text)
+    internal static List<List<string>> ParseCsv(string text)
     {
         var firstLine = text.Split('\n', 2)[0];
         var delimiter = firstLine.Count(c => c == ';') > firstLine.Count(c => c == ',') ? ';' : ',';

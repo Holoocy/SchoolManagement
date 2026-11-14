@@ -52,6 +52,8 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<StudentCsvImporter>();
+builder.Services.AddScoped<ResultsService>();
+builder.Services.AddScoped<ScoreSheetFiles>();
 builder.Services.AddSingleton<ISchoolClock, SchoolClock>();
 builder.Services.AddHostedService<ExamReminderService>();
 

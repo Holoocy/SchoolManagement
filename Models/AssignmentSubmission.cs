@@ -19,8 +19,13 @@ public class AssignmentSubmission : ITenantEntity
     [Display(Name = "Submitted On")]
     public DateTime? SubmittedOn { get; set; }
 
-    [Range(0, 100)]
+    // Score out of the assignment's total marks (MaxScore).
     public decimal? Grade { get; set; }
 
     public string? Feedback { get; set; }
+
+    // Need Assignment loaded.
+    public string? ScoreText => Grade == null ? null : $"{Grade.Value:0.##} / {Assignment?.MaxScore ?? 100}";
+    public decimal? Percent => Grade == null || (Assignment?.MaxScore ?? 100) <= 0 ? null
+        : Math.Round(Grade.Value * 100m / (Assignment?.MaxScore ?? 100), 1);
 }

@@ -41,7 +41,7 @@ else
             {
                 <tr>
                     <td>@exam.Subject?.Name</td>
-                    <td>@exam.Title</td>
+                    <td>@exam.Title @if (exam.IsCaTest) { <span class="status-badge status-assigned ms-1">CA Test</span> }</td>
                     <td>@(exam.StartDate != null ? exam.StartDate.Value.ToString("ddd d MMM yyyy, h:mm tt") : "—")</td>
                     <td>@(exam.DurationMinutes != null ? SchoolManagement.Services.ExamNotices.Duration(exam.DurationMinutes.Value) : "—")</td>
                     <td>
